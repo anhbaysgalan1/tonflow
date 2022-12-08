@@ -51,7 +51,7 @@ func (app *App) handleUpdate(update tgbotapi.Update) {
 					log.Error().Err(err)
 				}
 
-				time.AfterFunc(time.Second*30, func() {
+				time.AfterFunc(time.Second*15, func() {
 					msg = tgbotapi.DeleteMessageConfig{
 						ChatID:    update.Message.Chat.ID,
 						MessageID: update.Message.MessageID + 1,
