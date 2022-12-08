@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  app:
+    environment:
+      APP_ENV: "production"
+      POSTGRES_PASSWORD: "${PG_PASSWORD}"
+    build: ./
+    command: cmd/main
+    # restart: always
