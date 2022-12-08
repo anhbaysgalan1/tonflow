@@ -5,14 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"time"
 	"ton-flow-bot/internal/service/model"
 	"ton-flow-bot/internal/storage"
 )
 
 type DB struct {
-	*sqlx.DB
+	*pgxpool.Pool
 }
 
 type Config struct {
@@ -30,10 +30,15 @@ func NewPGStorage(cfg *Config) (storage.Storage, error) {
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name,
 	)
 
-	db, err := sqlx.Connect("postgres", url)
+	pool, err := pgxpool.Connect(context.Background(), url)
 	if err != nil {
 		return nil, err
 	}
+
+	//conn, err := sqlx.Connect("postgres", url)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	if cfg.Migration {
 		err = Migration(url)
@@ -43,14 +48,18 @@ func NewPGStorage(cfg *Config) (storage.Storage, error) {
 	}
 
 	return &DB{
-		db,
+		pool,
 	}, nil
+}
+
+func (db *DB) Close() {
+	db.Close()
 }
 
 func (db *DB) CheckUser(ctx context.Context, u model.User) (bool, error) {
 	query := `select id from users where id = $1`
 	var userID int64
-	err := db.QueryRowContext(ctx, query, u.ID).Scan(&userID)
+	err := db.QueryRow(ctx, query, u.ID).Scan(&userID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return false, err
 	}
@@ -58,7 +67,7 @@ func (db *DB) CheckUser(ctx context.Context, u model.User) (bool, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		query := `insert into users (id, username, first_name, last_name, language_code, wallet, first_message_at, last_message_at)
 				values ($1, $2, $3, $4, $5, $6, $7, $8)`
-		_, err := db.ExecContext(ctx, query, u.ID, u.Username, u.FirstName, u.LastName, u.LanguageCode, u.Wallet, u.FirstMessageAt, u.LastMessageAt)
+		_, err := db.Exec(ctx, query, u.ID, u.Username, u.FirstName, u.LastName, u.LanguageCode, u.Wallet, u.FirstMessageAt, u.LastMessageAt)
 		if err != nil {
 			return false, err
 		}
@@ -66,7 +75,7 @@ func (db *DB) CheckUser(ctx context.Context, u model.User) (bool, error) {
 	}
 
 	query = `update users set last_message_at = $2 where id = $1`
-	_, err = db.ExecContext(ctx, query, u.ID, u.LastMessageAt)
+	_, err = db.Exec(ctx, query, u.ID, u.LastMessageAt)
 	if err != nil {
 		return false, err
 	}
@@ -76,9 +85,9 @@ func (db *DB) CheckUser(ctx context.Context, u model.User) (bool, error) {
 
 func (db *DB) AddPicture(ctx context.Context, ID string, time time.Time) error {
 	query := `insert into pictures (id, added_at) values ($1, $2)`
+	_, err := db.Exec(ctx, query, ID, time)
 
-	row := db.QueryRowContext(ctx, query, ID, time)
-	if err := row.Err(); err != nil {
+	if err != nil {
 		return err
 	}
 
@@ -89,7 +98,7 @@ func (db *DB) GetRandomPicture(ctx context.Context) (string, error) {
 	query := `select id from pictures order by random() limit 1`
 
 	id := ""
-	err := db.QueryRowContext(ctx, query).Scan(&id)
+	err := db.QueryRow(ctx, query).Scan(&id)
 	if err != nil {
 		return "", nil
 	}

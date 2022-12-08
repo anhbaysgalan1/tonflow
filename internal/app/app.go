@@ -59,4 +59,6 @@ func (app *App) Run() {
 	for update := range updates {
 		app.handleUpdate(update)
 	}
+
+	app.storage.Close()
 }
