@@ -22,20 +22,22 @@ func NewApp() (*App, error) {
 		log.Fatal().Err(err).Msg("failed to load config")
 	}
 
-	if cfg.Debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Logger = log.With().Caller().Logger()
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: pkg.TimeLayoutLOG})
-	} else {
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	}
-	log.Debug().Msg(pkg.AnyPrint(cfg.AppName+" config", cfg))
-
 	bot, err := tgbotapi.NewBotAPI(cfg.BotToken)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init BotAPI instance config")
 	}
-	bot.Debug = true
+
+	if cfg.Debug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		log.Logger = log.With().Caller().Logger()
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: pkg.TimeLayoutLOG})
+		bot.Debug = true
+	} else {
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		bot.Debug = false
+	}
+	log.Debug().Msg(pkg.AnyPrint(cfg.AppName+" config", cfg))
+
 	log.Debug().Msgf("Authorized on account %s", bot.Self.UserName)
 
 	st, err := postgres.NewPGStorage(cfg.PG)
