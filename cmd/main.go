@@ -6,9 +6,10 @@ import (
 )
 
 func main() {
-	botApp, err := app.NewApp()
+	tonFlow, err := app.NewApp()
 	if err != nil {
 		log.Fatal(err)
 	}
-	botApp.Run()
+
+	tonFlow.Run()
 }

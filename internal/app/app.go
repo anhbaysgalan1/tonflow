@@ -1,66 +1,76 @@
 package app
 
 import (
-	"github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"os"
-	"ton-flow-bot/internal/storage"
+	"os/signal"
+	"syscall"
+	"ton-flow-bot/internal/service/bot"
+	"ton-flow-bot/internal/service/ton"
 	"ton-flow-bot/internal/storage/postgres"
 	"ton-flow-bot/pkg"
 )
 
 type App struct {
-	config  *config
-	bot     *tgbotapi.BotAPI
-	storage storage.Storage
+	config     *config
+	bot        *bot.Bot
+	shutdownCh chan os.Signal
 }
 
 func NewApp() (*App, error) {
+	// app config
 	cfg, err := loadConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to load config")
 	}
 
-	bot, err := tgbotapi.NewBotAPI(cfg.BotToken)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to init BotAPI instance config")
-	}
-
+	// logger
 	if cfg.Debug {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Logger = log.With().Caller().Logger()
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: pkg.TimeLayoutLOG})
-		bot.Debug = true
 	} else {
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-		bot.Debug = false
 	}
 	log.Debug().Msg(pkg.AnyPrint(cfg.AppName+" config", cfg))
 
-	log.Debug().Msgf("Authorized on account %s", bot.Self.UserName)
+	// ton service
+	tonService, err := ton.NewTon(cfg.LiteServers)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to init ton service")
+	}
 
-	st, err := postgres.NewPGStorage(cfg.PG)
+	// storage
+	st, err := postgres.NewStorage(cfg.PG)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init storage")
 	}
 
+	// telegram bot service
+	botService, err := bot.NewBot(cfg.BotToken, cfg.BotAdminID, tonService, st, cfg.Debug)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to init bot service")
+	}
+	log.Debug().Msgf("authorized on Telegram bot %s", botService.BotName)
+
+	// exit channel
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
 	return &App{
-		config:  cfg,
-		bot:     bot,
-		storage: st,
+		config:     cfg,
+		bot:        botService,
+		shutdownCh: quit,
 	}, nil
 }
 
 func (app *App) Run() {
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	app.bot.Start()
+	log.Info().Msgf("%s started", app.config.AppName)
 
-	updates := app.bot.GetUpdatesChan(u)
-
-	for update := range updates {
-		app.handleUpdate(update)
-	}
-
-	app.storage.Close()
+	<-app.shutdownCh
+	log.Info().Msgf("waiting for all services to stop...")
+	app.bot.Stop()
+	log.Info().Msg("application stopped")
 }

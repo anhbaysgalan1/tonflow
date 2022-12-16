@@ -22,5 +22,4 @@ RUN update-ca-certificates
 RUN go build -v -o cmd/ cmd/main.go
 
 EXPOSE 8080
-
 CMD [ "cmd/main" ]

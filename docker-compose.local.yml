@@ -1,19 +1,16 @@
 version: "3.9"
-
 volumes:
   pg:
-
 services:
-
   postgres:
     image: postgres:latest
     container_name: postgres
-    ports:
-      - "5436:${PG_PORT}"
+    restart: always
     environment:
       POSTGRES_DB: "${PG_NAME}"
       POSTGRES_USER: "${PG_USER}"
       POSTGRES_PASSWORD: "${PG_PASSWORD}"
-    restart: always
+    ports:
+      - "${PG_PORT}:${PG_PORT}"
     volumes:
       - pg:/var/lib/postgresql/data

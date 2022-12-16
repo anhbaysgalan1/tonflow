@@ -2,12 +2,13 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
-	"ton-flow-bot/internal/service/model"
+	"ton-flow-bot/internal/service/bot/model"
+	"ton-flow-bot/internal/service/ton"
 	"ton-flow-bot/internal/storage"
 )
 
@@ -21,24 +22,19 @@ type Config struct {
 	User      string
 	Password  string
 	Name      string
+	SSL       string
 	Migration bool
 }
 
-func NewPGStorage(cfg *Config) (storage.Storage, error) {
+func NewStorage(cfg *Config) (storage.Storage, error) {
 	url := fmt.Sprintf(
-		"postgresql://%s:%s@%s:%s/%s?sslmode=require",
-		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name,
-	)
+		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name, cfg.SSL)
 
-	pool, err := pgxpool.Connect(context.Background(), url)
+	pool, err := pgxpool.New(context.Background(), url)
 	if err != nil {
 		return nil, err
 	}
-
-	//conn, err := sqlx.Connect("postgres", url)
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	if cfg.Migration {
 		err = Migration(url)
@@ -52,22 +48,18 @@ func NewPGStorage(cfg *Config) (storage.Storage, error) {
 	}, nil
 }
 
-func (db *DB) Close() {
-	db.Close()
-}
-
-func (db *DB) CheckUser(ctx context.Context, u model.User) (bool, error) {
+func (db *DB) CheckUser(ctx context.Context, u *model.User) (bool, error) {
 	query := `select id from users where id = $1`
 	var userID int64
 	err := db.QueryRow(ctx, query, u.ID).Scan(&userID)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return false, err
 	}
 
-	if errors.Is(err, sql.ErrNoRows) {
-		query := `insert into users (id, username, first_name, last_name, language_code, wallet, first_message_at, last_message_at)
+	if errors.Is(err, pgx.ErrNoRows) {
+		query = `insert into users (id, username, first_name, last_name, language_code, wallet, first_message_at, last_message_at)
 				values ($1, $2, $3, $4, $5, $6, $7, $8)`
-		_, err := db.Exec(ctx, query, u.ID, u.Username, u.FirstName, u.LastName, u.LanguageCode, u.Wallet, u.FirstMessageAt, u.LastMessageAt)
+		_, err = db.Exec(ctx, query, u.ID, u.Username, u.FirstName, u.LastName, u.LanguageCode, u.Wallet, time.Now(), time.Now())
 		if err != nil {
 			return false, err
 		}
@@ -75,7 +67,7 @@ func (db *DB) CheckUser(ctx context.Context, u model.User) (bool, error) {
 	}
 
 	query = `update users set last_message_at = $2 where id = $1`
-	_, err = db.Exec(ctx, query, u.ID, u.LastMessageAt)
+	_, err = db.Exec(ctx, query, u.ID, time.Now())
 	if err != nil {
 		return false, err
 	}
@@ -83,25 +75,105 @@ func (db *DB) CheckUser(ctx context.Context, u model.User) (bool, error) {
 	return true, nil
 }
 
-func (db *DB) AddPicture(ctx context.Context, ID string, time time.Time) error {
-	query := `insert into pictures (id, added_at) values ($1, $2)`
-	_, err := db.Exec(ctx, query, ID, time)
+func (db *DB) AddTransaction(ctx context.Context, tr ton.Transaction) error {
+	query := `insert into transactions ("source", "hash", "value", "comment") values ($1, $2, $3, $4)`
+	_, err := db.Exec(ctx, query, tr.Source, tr.Hash, tr.Comment)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
+func (db *DB) AddWallet(ctx context.Context, wallet *ton.Wallet, userID int64) error {
+	tx, err := db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+
+		} else {
+			tx.Commit(ctx)
+		}
+	}()
+
+	query := `insert into wallets ("address", "version", "seed", "created_at") values ($1, $2, $3, $4)`
+	_, err = tx.Exec(ctx, query, wallet.Address, wallet.Version, wallet.Seed, time.Now())
 	if err != nil {
 		return err
 	}
 
+	query = `update users set wallet = $1 where id = $2`
+	_, err = tx.Exec(ctx, query, wallet.Address, userID)
+	if err != nil {
+		return err
+	}
+
+	query = `update users set last_message_at = $2 where id = $1`
+	_, err = tx.Exec(ctx, query, userID, time.Now())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DB) GetUserWallet(ctx context.Context, userID int64) (string, error) {
+	query := `select wallet from users where id = $1`
+	var wallet string
+	err := db.QueryRow(ctx, query, userID).Scan(&wallet)
+	if err != nil {
+		return "", err
+	}
+
+	return wallet, nil
+}
+
+func (db *DB) GetUserTransactions(ctx context.Context, userID int64) ([]*ton.Transaction, error) {
+	wallet, err := db.GetUserWallet(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if wallet == "" {
+		return nil, errors.New("user have no wallet")
+	}
+
+	query := `select * from transactions where source = $1`
+	rows, err := db.Query(ctx, query, wallet)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	trs := make([]*ton.Transaction, 0)
+	for rows.Next() {
+		var r *ton.Transaction
+		err = rows.Scan(&r.Source, &r.Hash, &r.Value, &r.Comment)
+		if err != nil {
+			return nil, err
+		}
+		trs = append(trs, r)
+	}
+
+	return trs, nil
+}
+
+func (db *DB) AddPicture(ctx context.Context, ID string, time time.Time) error {
+	query := `insert into pictures (id, added_at) values ($1, $2)`
+	_, err := db.Exec(ctx, query, ID, time)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (db *DB) GetRandomPicture(ctx context.Context) (string, error) {
 	query := `select id from pictures order by random() limit 1`
-
 	id := ""
 	err := db.QueryRow(ctx, query).Scan(&id)
 	if err != nil {
 		return "", nil
 	}
-
 	return id, nil
 }
