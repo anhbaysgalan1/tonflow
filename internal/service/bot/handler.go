@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"time"
 )
@@ -90,7 +91,7 @@ func (bot *Bot) handleAdminMessage(ctx context.Context, update telegramBotAPI.Up
 			return
 		}
 		if fileID == "" {
-			bot.err(err, " no pics in database")
+			bot.err(errors.New("no pics in database"), "")
 			return
 		}
 
