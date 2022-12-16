@@ -89,6 +89,10 @@ func (bot *Bot) handleAdminMessage(ctx context.Context, update telegramBotAPI.Up
 			bot.err(err, "failed to get random pic")
 			return
 		}
+		if fileID == "" {
+			bot.err(err, " no pics in database")
+			return
+		}
 
 		bot.sendPhoto(update.Message.Chat.ID, fileID)
 
