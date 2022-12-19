@@ -5,10 +5,12 @@ import telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 var (
 	mainKeyboard = telegramBotAPI.NewReplyKeyboard(
 		telegramBotAPI.NewKeyboardButtonRow(
+			telegramBotAPI.NewKeyboardButton(""),
+			telegramBotAPI.NewKeyboardButton("📥 Receive"),
+			telegramBotAPI.NewKeyboardButton("📤 Send"),
+		), telegramBotAPI.NewKeyboardButtonRow(
 			telegramBotAPI.NewKeyboardButton("💎 Balance"),
-			telegramBotAPI.NewKeyboardButton("💳 Buy TON"),
-		),
-	)
+		))
 
 	depositInlineKeyboard = telegramBotAPI.NewInlineKeyboardMarkup(
 		telegramBotAPI.NewInlineKeyboardRow(

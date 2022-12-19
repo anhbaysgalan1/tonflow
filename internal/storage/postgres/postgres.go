@@ -173,7 +173,28 @@ func (db *DB) GetRandomPicture(ctx context.Context) (string, error) {
 	id := ""
 	err := db.QueryRow(ctx, query).Scan(&id)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return id, nil
+}
+
+func (db *DB) GetAllPictures(ctx context.Context) ([]string, error) {
+	query := `select id from pictures`
+
+	rows, err := db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	IDs := make([]string, 0)
+	for rows.Next() {
+		var ID string
+		err = rows.Scan(&ID)
+		if err != nil {
+			return nil, err
+		}
+		IDs = append(IDs, ID)
+	}
+	return IDs, nil
 }

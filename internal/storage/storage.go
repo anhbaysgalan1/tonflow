@@ -18,4 +18,5 @@ type Storage interface {
 
 	AddPicture(ctx context.Context, ID string, time time.Time) error
 	GetRandomPicture(ctx context.Context) (string, error)
+	GetAllPictures(ctx context.Context) ([]string, error)
 }

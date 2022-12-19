@@ -17,7 +17,6 @@ func (l logger) Println(v ...interface{}) {
 }
 
 func (bot *Bot) err(err error, desc string) {
-
 	text := ""
 
 	switch desc {
@@ -31,6 +30,7 @@ func (bot *Bot) err(err error, desc string) {
 
 	msg := telegramBotAPI.NewMessage(-1001638881880, text)
 	msg.ParseMode = "HTML"
+	msg.DisableNotification = false
 
 	_, er := bot.api.Send(msg)
 	if er != nil {

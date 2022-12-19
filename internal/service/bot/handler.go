@@ -2,8 +2,9 @@ package bot
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/skip2/go-qrcode"
 	"time"
 )
 
@@ -27,7 +28,7 @@ func (bot *Bot) handleNilMessage(_ context.Context, update telegramBotAPI.Update
 }
 
 func (bot *Bot) handleMessage(ctx context.Context, update telegramBotAPI.Update) {
-	_, err := bot.checkUser(ctx, update) //TODO: сделать надежную логику внутри этого метода
+	isExist, wallet, err := bot.checkUser(ctx, update) //TODO: сделать надежную логику внутри этого метода
 	if err != nil {
 		bot.err(err, "failed to check user")
 		return
@@ -35,7 +36,7 @@ func (bot *Bot) handleMessage(ctx context.Context, update telegramBotAPI.Update)
 
 	switch {
 	case update.Message.IsCommand():
-		// bot.handleCommand(ctx, update)
+		bot.handleCommand(ctx, update, isExist, wallet)
 	case update.Message.From.ID == bot.adminID:
 		bot.handleAdminMessage(ctx, update)
 	default:
@@ -43,32 +44,78 @@ func (bot *Bot) handleMessage(ctx context.Context, update telegramBotAPI.Update)
 	}
 }
 
-func (bot *Bot) checkUser(ctx context.Context, update telegramBotAPI.Update) (bool, error) {
+func (bot *Bot) checkUser(ctx context.Context, update telegramBotAPI.Update) (bool, string, error) {
+	bot.sendTyping(update.Message.From.ID)
+
 	flowUser := toFlowUser(update.SentFrom())
 
 	userExist, err := bot.storage.CheckUser(ctx, flowUser)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	wlt, err := bot.storage.GetUserWallet(ctx, flowUser.ID)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	if !userExist || (wlt == "" && err == nil) {
 		wallet, err := bot.ton.NewWallet()
 		if err != nil {
-			return false, err
+			return false, "", err
 		}
 
 		err = bot.storage.AddWallet(ctx, wallet, flowUser.ID)
 		if err != nil {
-			return false, err
+			return false, "", err
 		}
+
+		wlt = wallet.Address
+
+		return false, wlt, nil
 	}
 
-	return true, nil
+	return true, wlt, nil
+}
+
+func (bot *Bot) handleCommand(ctx context.Context, update telegramBotAPI.Update, isExist bool, wallet string) {
+	switch update.Message.Command() {
+	case "start":
+		text := ""
+		if !isExist {
+			text = fmt.Sprintf(startNewUser, update.Message.From.FirstName)
+		} else {
+			text = fmt.Sprintf(startRegisteredUser, update.Message.From.FirstName)
+		}
+		bot.sendText(update.Message.Chat.ID, text, telegramBotAPI.ReplyKeyboardMarkup{})
+
+		text = fmt.Sprintf("<pre>%s</pre>", wallet)
+
+		png, err := qrcode.Encode("https://example.org", qrcode.Medium, 512)
+		if err != nil {
+			bot.err(err, "failed to generate QR")
+		}
+
+		fileBytes := telegramBotAPI.FileBytes{
+			Name:  "QR.png",
+			Bytes: png,
+		}
+
+		qr := telegramBotAPI.NewDocument(update.Message.Chat.ID, fileBytes)
+		qr.Caption = text
+		qr.ParseMode = "HTML"
+		qr.DisableNotification = true
+		keyboard := mainKeyboard
+		keyboard.ResizeKeyboard = true
+		keyboard.InputFieldPlaceholder = "Buy more TON :)"
+
+		qr.ReplyMarkup = keyboard
+
+		_, err = bot.api.Send(qr)
+		if err != nil {
+			bot.err(err, "failed to send QR")
+		}
+	}
 }
 
 func (bot *Bot) handleAdminMessage(ctx context.Context, update telegramBotAPI.Update) {
@@ -90,16 +137,23 @@ func (bot *Bot) handleAdminMessage(ctx context.Context, update telegramBotAPI.Up
 			bot.err(err, "failed to get random pic")
 			return
 		}
-		if fileID == "" {
-			bot.err(errors.New("no pics in database"), "")
-			return
-		}
 
 		bot.sendPhoto(update.Message.Chat.ID, fileID)
 
 		time.AfterFunc(time.Second*5, func() {
 			bot.deleteMessage(update.Message.Chat.ID, update.Message.MessageID+1)
 		})
+	//case update.Message.Text == "55555":
+	//	IDs, err := bot.storage.GetAllPictures(ctx)
+	//	if err != nil {
+	//		bot.err(err, "failed to get random pic")
+	//		return
+	//	}
+	//
+	//	for _, v := range IDs {
+	//		bot.sendPhoto(update.Message.Chat.ID, v)
+	//		time.Sleep(time.Millisecond * 500)
+	//	}
 	default:
 
 	}
@@ -130,7 +184,6 @@ func (bot *Bot) sendText(chatID int64, text string, markup telegramBotAPI.ReplyK
 	msg := telegramBotAPI.NewMessage(chatID, text)
 	msg.ParseMode = "HTML"
 	msg.DisableNotification = true
-	msg.ReplyMarkup = markup
 
 	_, err := bot.api.Send(msg)
 	if err != nil {
