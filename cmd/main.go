@@ -1,8 +1,8 @@
 package main
 
 import (
-	"flow-wallet/internal/app"
 	"log"
+	"park-wallet/internal/app"
 )
 
 func main() {

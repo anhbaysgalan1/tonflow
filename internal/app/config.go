@@ -1,10 +1,11 @@
 package app
 
 import (
-	"flow-wallet/internal/storage/postgres"
 	"fmt"
 	"github.com/joho/godotenv"
 	"os"
+	"park-wallet/internal/storage/postgres"
+	"park-wallet/internal/storage/redis"
 	"strconv"
 )
 
@@ -19,6 +20,8 @@ type config struct {
 	WorkMode    string
 	LiteServers string
 	Wallet      string
+
+	Redis *redis.Config
 
 	PG *postgres.Config
 }
@@ -119,6 +122,16 @@ func loadConfig() (*config, error) {
 		}
 	}
 
+	// Redis vars
+	redisHost, err := getEnvString("REDIS_HOST")
+	if err != nil {
+		return nil, err
+	}
+	redisPort, err := getEnvString("REDIS_PORT")
+	if err != nil {
+		return nil, err
+	}
+
 	// PG vars
 	pgHost, err := getEnvString("PG_HOST")
 	if err != nil {
@@ -159,6 +172,10 @@ func loadConfig() (*config, error) {
 		WorkMode:    workMode,
 		LiteServers: liteServers,
 		Wallet:      wallet,
+		Redis: &redis.Config{
+			Host: redisHost,
+			Port: redisPort,
+		},
 		PG: &postgres.Config{
 			Host:      pgHost,
 			Port:      pgPort,

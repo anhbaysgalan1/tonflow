@@ -1,6 +1,7 @@
 version: "3.9"
 volumes:
   pg:
+  redis:
 services:
   postgres:
     image: postgres:latest
@@ -14,3 +15,11 @@ services:
       - "${PG_PORT}:${PG_PORT}"
     volumes:
       - pg:/var/lib/postgresql/data
+  redis:
+    image: "redis:alpine"
+    container_name: redis
+    restart: always
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    volumes:
+      - redis:/data

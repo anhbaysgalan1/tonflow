@@ -3,12 +3,12 @@ package postgres
 import (
 	"context"
 	"errors"
-	"flow-wallet/internal/service/bot/model"
-	"flow-wallet/internal/service/ton"
-	"flow-wallet/internal/storage"
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"park-wallet/internal/service/bot/model"
+	"park-wallet/internal/service/ton"
+	"park-wallet/internal/storage"
 	"time"
 )
 

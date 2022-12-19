@@ -1,9 +1,9 @@
 package storage
 
 import (
-	"flow-wallet/internal/service/bot/model"
-	"flow-wallet/internal/service/ton"
 	"golang.org/x/net/context"
+	"park-wallet/internal/service/bot/model"
+	"park-wallet/internal/service/ton"
 	"time"
 )
 

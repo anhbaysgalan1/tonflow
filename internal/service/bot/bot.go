@@ -2,9 +2,10 @@ package bot
 
 import (
 	"context"
-	"flow-wallet/internal/service/ton"
-	"flow-wallet/internal/storage"
+	goRedis "github.com/go-redis/redis/v9"
 	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"park-wallet/internal/service/ton"
+	"park-wallet/internal/storage"
 	"sync"
 )
 
@@ -13,11 +14,12 @@ type Bot struct {
 	adminID int64
 	api     *telegramBotAPI.BotAPI
 	ton     *ton.Ton
+	redis   *goRedis.Client
 	storage storage.Storage
 	stopCh  chan struct{}
 }
 
-func NewBot(token string, admin int64, ton *ton.Ton, storage storage.Storage, debug bool) (*Bot, error) {
+func NewBot(token string, admin int64, ton *ton.Ton, redisClient *goRedis.Client, storage storage.Storage, debug bool) (*Bot, error) {
 	botAPI, err := telegramBotAPI.NewBotAPI(token)
 	if err != nil {
 		return nil, err
@@ -36,6 +38,7 @@ func NewBot(token string, admin int64, ton *ton.Ton, storage storage.Storage, de
 		adminID: admin,
 		api:     botAPI,
 		ton:     ton,
+		redis:   redisClient,
 		storage: storage,
 		stopCh:  make(chan struct{}),
 	}, nil

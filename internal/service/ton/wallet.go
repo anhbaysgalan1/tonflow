@@ -31,19 +31,19 @@ func (ton *Ton) GetWalletBalance(wallet string) (string, error) {
 
 	addr, err := address.ParseAddr(wallet)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to parse address")
+		log.Error().Err(err).Msg("parse TON address")
 		return "", err
 	}
 
 	block, err := ton.tonAPI.GetMasterchainInfo(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get block")
+		log.Error().Err(err).Msg("get block")
 		return "", err
 	}
 
 	wlt, err := ton.tonAPI.GetAccount(ctx, block, addr)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get account info")
+		log.Error().Err(err).Msg("get account info")
 		return "", err
 	}
 

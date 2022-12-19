@@ -44,7 +44,7 @@ func (bot *Bot) handleMessage(ctx context.Context, update telegramBotAPI.Update)
 	case update.Message.From.ID == bot.adminID:
 		// bot.handleAdminMessage(ctx, update)
 		//default:
-		// bot.handleUserMessage(ctx, update)
+		bot.handleUserMessage(ctx, update, isExist, wallet)
 	}
 }
 
@@ -117,6 +117,31 @@ func (bot *Bot) handleCommand(ctx context.Context, update telegramBotAPI.Update,
 		_, err = bot.api.Send(startMsg)
 		if err != nil {
 			msg := "send start message"
+			log.Error().Err(err).Msg(msg)
+			bot.err(err, msg)
+		}
+	}
+}
+
+func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Update, isExist bool, wallet string) {
+	switch update.Message.Text {
+	case "💎 Balance":
+		bot.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
+
+		balance, err := bot.ton.GetWalletBalance(wallet)
+		if err != nil {
+			msg := "get wallet balance"
+			log.Error().Err(err).Msg(msg)
+			bot.err(err, msg)
+		}
+
+		text := fmt.Sprintf("💎 Your balance is %s TON", balance)
+		textMsg := telegramBotAPI.NewMessage(update.Message.Chat.ID, text)
+		textMsg.DisableNotification = true
+
+		_, err = bot.api.Send(textMsg)
+		if err != nil {
+			msg := "send balance message"
 			log.Error().Err(err).Msg(msg)
 			bot.err(err, msg)
 		}
@@ -203,14 +228,15 @@ func (bot *Bot) sendTyping(chatID int64) {
 //	}
 //}
 
-//func (bot *Bot) deleteMessage(chatID int64, messageID int) {
-//	deleteConfig := telegramBotAPI.DeleteMessageConfig{
-//		ChatID:    chatID,
-//		MessageID: messageID,
-//	}
-//	_, err := bot.api.Request(deleteConfig)
-//	if err != nil {
-//		log.Error().Err(err).Send()
-//		bot.err(err, "failed to delete message")
-//	}
-//}
+func (bot *Bot) deleteMessage(chatID int64, messageID int) {
+	deleteConfig := telegramBotAPI.DeleteMessageConfig{
+		ChatID:    chatID,
+		MessageID: messageID,
+	}
+	_, err := bot.api.Request(deleteConfig)
+	if err != nil {
+		msg := "auto delete message"
+		log.Error().Err(err).Msg(msg)
+		bot.err(err, msg)
+	}
+}

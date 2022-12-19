@@ -1,14 +1,15 @@
 package app
 
 import (
-	"flow-wallet/internal/service/bot"
-	"flow-wallet/internal/service/ton"
-	"flow-wallet/internal/storage/postgres"
-	"flow-wallet/pkg"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"
+	"park-wallet/internal/service/bot"
+	"park-wallet/internal/service/ton"
+	"park-wallet/internal/storage/postgres"
+	"park-wallet/internal/storage/redis"
+	"park-wallet/pkg"
 	"syscall"
 )
 
@@ -41,6 +42,12 @@ func NewApp() (*App, error) {
 		log.Fatal().Err(err).Msg("failed to init ton service")
 	}
 
+	// redis
+	redisClient, err := redis.NewRedisClient(cfg.Redis)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to init redis client")
+	}
+
 	// storage
 	st, err := postgres.NewStorage(cfg.PG)
 	if err != nil {
@@ -48,7 +55,7 @@ func NewApp() (*App, error) {
 	}
 
 	// telegram bot service
-	botService, err := bot.NewBot(cfg.BotToken, cfg.BotAdminID, tonService, st, cfg.Debug)
+	botService, err := bot.NewBot(cfg.BotToken, cfg.BotAdminID, tonService, redisClient, st, cfg.Debug)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init bot service")
 	}

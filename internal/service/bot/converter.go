@@ -1,8 +1,8 @@
 package bot
 
 import (
-	"flow-wallet/internal/service/bot/model"
 	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"park-wallet/internal/service/bot/model"
 )
 
 func toFlowUser(u *telegramBotAPI.User) *model.User {
