@@ -1,4 +1,4 @@
-module ton-flow-bot
+module flow-wallet
 
 go 1.19
 
@@ -8,6 +8,7 @@ require (
 	github.com/jackc/pgx/v5 v5.2.0
 	github.com/joho/godotenv v1.4.0
 	github.com/rs/zerolog v1.28.0
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/xssnick/tonutils-go v1.4.1
 	golang.org/x/net v0.4.0
 )
@@ -23,7 +24,6 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20220328075252-7dd334e3daae // indirect
 	github.com/sigurn/crc16 v0.0.0-20211026045750-20ab5afb07e3 // indirect
-	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
 	golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7 // indirect

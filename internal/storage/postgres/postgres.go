@@ -3,13 +3,13 @@ package postgres
 import (
 	"context"
 	"errors"
+	"flow-wallet/internal/service/bot/model"
+	"flow-wallet/internal/service/ton"
+	"flow-wallet/internal/storage"
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
-	"ton-flow-bot/internal/service/bot/model"
-	"ton-flow-bot/internal/service/ton"
-	"ton-flow-bot/internal/storage"
 )
 
 type DB struct {

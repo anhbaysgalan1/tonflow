@@ -1,11 +1,11 @@
 package app
 
 import (
+	"flow-wallet/internal/storage/postgres"
 	"fmt"
 	"github.com/joho/godotenv"
 	"os"
 	"strconv"
-	"ton-flow-bot/internal/storage/postgres"
 )
 
 type config struct {

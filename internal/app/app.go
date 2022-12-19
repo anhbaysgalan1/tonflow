@@ -1,15 +1,15 @@
 package app
 
 import (
+	"flow-wallet/internal/service/bot"
+	"flow-wallet/internal/service/ton"
+	"flow-wallet/internal/storage/postgres"
+	"flow-wallet/pkg"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"
 	"syscall"
-	"ton-flow-bot/internal/service/bot"
-	"ton-flow-bot/internal/service/ton"
-	"ton-flow-bot/internal/storage/postgres"
-	"ton-flow-bot/pkg"
 )
 
 type App struct {

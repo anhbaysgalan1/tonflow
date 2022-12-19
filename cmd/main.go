@@ -1,8 +1,8 @@
 package main
 
 import (
+	"flow-wallet/internal/app"
 	"log"
-	"ton-flow-bot/internal/app"
 )
 
 func main() {

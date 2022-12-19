@@ -1,10 +1,10 @@
 package storage
 
 import (
+	"flow-wallet/internal/service/bot/model"
+	"flow-wallet/internal/service/ton"
 	"golang.org/x/net/context"
 	"time"
-	"ton-flow-bot/internal/service/bot/model"
-	"ton-flow-bot/internal/service/ton"
 )
 
 type Storage interface {

@@ -2,10 +2,10 @@ package bot
 
 import (
 	"context"
+	"flow-wallet/internal/service/ton"
+	"flow-wallet/internal/storage"
 	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"sync"
-	"ton-flow-bot/internal/service/ton"
-	"ton-flow-bot/internal/storage"
 )
 
 type Bot struct {
