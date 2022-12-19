@@ -21,10 +21,8 @@ func (bot *Bot) err(err error, desc string) {
 
 	switch desc {
 	case "":
-		log.Error().Err(err).Send()
 		text = fmt.Sprintf("%s", err.Error())
 	default:
-		log.Error().Err(err).Msg(desc)
 		text = fmt.Sprintf("%s: %s ", desc, err.Error())
 	}
 
