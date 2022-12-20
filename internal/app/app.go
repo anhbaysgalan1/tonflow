@@ -55,11 +55,11 @@ func NewApp() (*App, error) {
 	}
 
 	// telegram bot service
-	botService, err := bot.NewBot(cfg.BotToken, cfg.BotAdminID, tonService, redisClient, st, cfg.Debug)
+	botService, err := bot.NewBot(cfg.BotToken, cfg.BotAdminID, tonService, redisClient, st, cfg.Debug, cfg.CryptoKey)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to init bot service")
 	}
-	log.Debug().Msgf("authorized on Telegram bot %s", botService.BotName)
+	log.Debug().Msgf("authorized on Telegram bot @%s", botService.BotName)
 
 	// exit channel
 	quit := make(chan os.Signal, 1)

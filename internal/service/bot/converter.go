@@ -1,11 +1,11 @@
 package bot
 
 import (
-	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"park-wallet/internal/service/bot/model"
 )
 
-func toFlowUser(u *telegramBotAPI.User) *model.User {
+func toFlowUser(u *tgBotAPI.User) *model.User {
 	return &model.User{
 		ID:           u.ID,
 		Username:     u.UserName,

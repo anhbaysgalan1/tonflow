@@ -15,6 +15,7 @@ type config struct {
 	AppName    string
 	BotToken   string
 	BotAdminID int64
+	CryptoKey  string
 	Debug      bool
 
 	WorkMode    string
@@ -94,6 +95,10 @@ func loadConfig() (*config, error) {
 	if err != nil {
 		return nil, err
 	}
+	cryptoKey, err := getEnvString("CRYPTO_KEY")
+	if err != nil {
+		return nil, err
+	}
 
 	// TON vars
 	workMode, err := getEnvString("WORK_MODE")
@@ -168,6 +173,7 @@ func loadConfig() (*config, error) {
 		AppName:     appName,
 		BotToken:    botToken,
 		BotAdminID:  botAdminID,
+		CryptoKey:   cryptoKey,
 		Debug:       debug,
 		WorkMode:    workMode,
 		LiteServers: liteServers,

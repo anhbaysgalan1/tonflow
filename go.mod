@@ -8,6 +8,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/jackc/pgx/v5 v5.2.0
 	github.com/joho/godotenv v1.4.0
+	github.com/makiuchi-d/gozxing v0.1.1
 	github.com/rs/zerolog v1.28.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/xssnick/tonutils-go v1.4.1
@@ -32,4 +33,5 @@ require (
 	golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )

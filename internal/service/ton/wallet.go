@@ -26,6 +26,14 @@ func (ton *Ton) NewWallet() (*Wallet, error) {
 	}, nil
 }
 
+func (ton *Ton) ValidateWallet(wallet string) error {
+	_, err := address.ParseAddr(wallet)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (ton *Ton) GetWalletBalance(wallet string) (string, error) {
 	ctx := ton.liteClient.StickyContext(context.Background())
 

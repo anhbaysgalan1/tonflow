@@ -7,6 +7,18 @@ import (
 	"time"
 )
 
+type Stage string
+
+const (
+	StageUnset         Stage = "unset"
+	StageAmountWaiting Stage = "amountWaiting"
+	StageWalletWaiting Stage = "walletWaiting"
+)
+
+func (s Stage) String() string {
+	return string(s)
+}
+
 type Storage interface {
 	CheckUser(ctx context.Context, user *model.User) (bool, error)
 
@@ -19,4 +31,9 @@ type Storage interface {
 	AddPicture(ctx context.Context, ID string, time time.Time) error
 	GetRandomPicture(ctx context.Context) (string, error)
 	GetAllPictures(ctx context.Context) ([]string, error)
+}
+
+type TemporaryStorage interface {
+	GetStage(ctx context.Context, userID string) (Stage, error)
+	SetStage(ctx context.Context, userID string, stage Stage) error
 }

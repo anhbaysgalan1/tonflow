@@ -2,7 +2,7 @@ package bot
 
 import (
 	"fmt"
-	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,12 +21,14 @@ func (bot *Bot) err(err error, desc string) {
 
 	switch desc {
 	case "":
+		log.Error().Err(err).Send()
 		text = fmt.Sprintf("%s", err.Error())
 	default:
+		log.Error().Err(err).Msg(desc)
 		text = fmt.Sprintf("%s: %s ", desc, err.Error())
 	}
 
-	msg := telegramBotAPI.NewMessage(-1001638881880, text)
+	msg := tgBotAPI.NewMessage(-1001638881880, text)
 	msg.ParseMode = "HTML"
 	msg.DisableNotification = false
 

@@ -2,10 +2,20 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/rs/zerolog/log"
+	"github.com/makiuchi-d/gozxing"
+	qrScan "github.com/makiuchi-d/gozxing/qrcode"
 	"github.com/skip2/go-qrcode"
+	"github.com/xssnick/tonutils-go/tlb"
+	"image/jpeg"
+	"net/http"
+	"park-wallet/internal/service/bot/template"
+	"park-wallet/internal/storage"
+	"park-wallet/pkg"
+	"strconv"
+	"strings"
 )
 
 func (bot *Bot) handleUpdate(ctx context.Context, update telegramBotAPI.Update) {
@@ -22,128 +32,280 @@ func (bot *Bot) handleNilMessage(_ context.Context, update telegramBotAPI.Update
 		callback := telegramBotAPI.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
 		_, err := bot.api.Request(callback)
 		if err != nil {
-			msg := "send callback message"
-			log.Error().Err(err).Msg(msg)
-			bot.err(err, msg)
+			bot.err(err, "send callback message")
 		}
 	}
 }
 
 func (bot *Bot) handleMessage(ctx context.Context, update telegramBotAPI.Update) {
-	isExist, wallet, err := bot.checkUser(ctx, update)
+	isExist, wallet, stage, err := bot.checkUser(ctx, update)
 	if err != nil {
-		msg := "check user"
-		log.Error().Err(err).Msg(msg)
-		bot.err(err, msg)
+		bot.err(err, "check user")
 		return
 	}
 
 	switch {
 	case update.Message.IsCommand():
 		bot.handleCommand(ctx, update, isExist, wallet)
-	case update.Message.From.ID == bot.adminID:
-		// bot.handleAdminMessage(ctx, update)
-		//default:
-		bot.handleUserMessage(ctx, update, isExist, wallet)
+	default:
+		bot.handleUserMessage(ctx, update, isExist, wallet, stage)
 	}
 }
 
-func (bot *Bot) checkUser(ctx context.Context, update telegramBotAPI.Update) (bool, string, error) {
+func (bot *Bot) checkUser(ctx context.Context, update telegramBotAPI.Update) (bool, string, storage.Stage, error) {
 	bot.sendTyping(update.Message.From.ID)
 
 	flowUser := toFlowUser(update.SentFrom())
 
 	userExist, err := bot.storage.CheckUser(ctx, flowUser)
 	if err != nil {
-		return false, "", err
+		return false, "", "", err
+	}
+
+	userID := strconv.FormatInt(toFlowUser(update.SentFrom()).ID, 10)
+	stage, err := bot.redis.GetStage(ctx, userID)
+	if err != nil {
+		return false, "", "", err
 	}
 
 	wlt, err := bot.storage.GetUserWallet(ctx, flowUser.ID)
 	if err != nil {
-		return false, "", err
+		return false, "", "", err
 	}
 
 	if !userExist || (wlt == "" && err == nil) {
 		wallet, err := bot.ton.NewWallet()
 		if err != nil {
-			return false, "", err
+			return false, "", "", err
 		}
-
+		wallet.Seed, err = pkg.EncryptAES([]byte(bot.cryptoKey), wallet.Seed)
+		if err != nil {
+			return false, "", "", err
+		}
 		err = bot.storage.AddWallet(ctx, wallet, flowUser.ID)
 		if err != nil {
-			return false, "", err
+			return false, "", "", err
 		}
-
 		wlt = wallet.Address
-
-		return false, wlt, nil
+		return false, wlt, stage, nil
 	}
 
-	return true, wlt, nil
+	return true, wlt, stage, nil
 }
 
 func (bot *Bot) handleCommand(ctx context.Context, update telegramBotAPI.Update, isExist bool, wallet string) {
 	switch update.Message.Command() {
 	case "start":
-		text := ""
-		if !isExist {
-			text = fmt.Sprintf(startNewUser, update.Message.From.FirstName, wallet)
-		} else {
-			text = fmt.Sprintf(startRegisteredUser, update.Message.From.FirstName, wallet)
-		}
-
 		qr, err := qrcode.Encode(wallet, qrcode.Medium, 512)
 		if err != nil {
-			msg := "generate QR"
-			log.Error().Err(err).Msg(msg)
-			bot.err(err, msg)
+			bot.err(err, "generate qr")
+			return
 		}
 
-		qrBytes := telegramBotAPI.FileBytes{
-			Bytes: qr,
+		caption := ""
+		switch isExist {
+		case true:
+			caption = fmt.Sprintf(template.WelcomeExistedUser, update.Message.From.FirstName, wallet)
+		case false:
+			caption = fmt.Sprintf(template.WelcomeNewUser, update.Message.From.FirstName, wallet)
 		}
 
-		startMsg := telegramBotAPI.NewPhoto(update.Message.Chat.ID, qrBytes)
-		startMsg.ParseMode = "HTML"
-		startMsg.Caption = text
-		startMsg.DisableNotification = true
-
-		buttons := mainKeyboard
-		buttons.ResizeKeyboard = true
-		buttons.InputFieldPlaceholder = ""
-
-		startMsg.ReplyMarkup = buttons
-
-		_, err = bot.api.Send(startMsg)
-		if err != nil {
-			msg := "send start message"
-			log.Error().Err(err).Msg(msg)
-			bot.err(err, msg)
+		if err := bot.sendPhoto(update.Message.Chat.ID, qr, caption, mainKeyboard); err != nil {
+			bot.err(err, "send wallet address and qr")
 		}
 	}
 }
 
-func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Update, isExist bool, wallet string) {
-	switch update.Message.Text {
-	case "💎 Balance":
-		bot.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
+func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Update, isExist bool, wallet string, stage storage.Stage) {
+	chatID := update.Message.Chat.ID
+	userID := strconv.FormatInt(toFlowUser(update.SentFrom()).ID, 10)
+	text := update.Message.Text
 
+	switch update.Message.Text {
+	case template.BalanceButton:
 		balance, err := bot.ton.GetWalletBalance(wallet)
 		if err != nil {
-			msg := "get wallet balance"
-			log.Error().Err(err).Msg(msg)
-			bot.err(err, msg)
+			bot.err(err, "get wallet balance")
+			return
 		}
 
-		text := fmt.Sprintf("💎 Your balance is %s TON", balance)
-		textMsg := telegramBotAPI.NewMessage(update.Message.Chat.ID, text)
-		textMsg.DisableNotification = true
+		if err = bot.sendText(chatID, fmt.Sprintf(template.Balance, balance), mainKeyboard); err != nil {
+			bot.err(err, "send wallet balance")
+		}
 
-		_, err = bot.api.Send(textMsg)
+	case template.ReceiveButton:
+		qr, err := qrcode.Encode(wallet, qrcode.Medium, 512)
 		if err != nil {
-			msg := "send balance message"
-			log.Error().Err(err).Msg(msg)
-			bot.err(err, msg)
+			bot.err(err, "generate qr")
+			return
+		}
+
+		caption := fmt.Sprintf("<pre>%s</pre>", wallet) + "\n\n" + template.ReceiveInstruction
+		if err := bot.sendPhoto(chatID, qr, caption, mainKeyboard); err != nil {
+			bot.err(err, "send wallet address and qr")
+		}
+
+	case template.SendButton:
+		balance, err := bot.ton.GetWalletBalance(wallet)
+		if err != nil {
+			bot.err(err, "get balance")
+			return
+		}
+
+		if balance == "0" {
+			if err = bot.sendText(chatID, template.NoFunds, mainKeyboard); err != nil {
+				bot.err(err, "not enough message")
+				return
+			}
+			return
+		}
+
+		if err = bot.redis.SetStage(ctx, userID, storage.StageAmountWaiting); err != nil {
+			bot.err(err, "set amount waiting stage")
+			return
+		}
+
+		if err = bot.sendText(chatID, template.AskAmount, cancelKeyboard); err != nil {
+			bot.err(err, "ask amount to send")
+			return
+		}
+
+	default:
+		switch text {
+		case template.CancelButton:
+			err := bot.redis.SetStage(ctx, userID, storage.StageUnset)
+			if err != nil {
+				bot.err(err, "set \"unset\" stage")
+				return
+			}
+
+			if err = bot.sendText(chatID, template.Canceled, mainKeyboard); err != nil {
+				bot.err(err, "send canceled message")
+			}
+
+		default:
+			if stage == storage.StageAmountWaiting && update.Message.Text != "" {
+
+				amount := strings.ReplaceAll(text, " ", "")
+				amount = strings.ReplaceAll(amount, ",", ".")
+
+				amountInCoins, err := tlb.FromTON(amount)
+				if err != nil {
+					if err := bot.sendText(chatID, template.InvalidAmount, cancelKeyboard); err != nil {
+						bot.err(err, "send invalid amount")
+						return
+					}
+					bot.err(err, "convert string to coins")
+					return
+				}
+
+				balance, err := bot.ton.GetWalletBalance(wallet)
+				if err != nil {
+					bot.err(err, "get wallet balance")
+					return
+				}
+
+				balanceInCoins, err := tlb.FromTON(balance)
+				if err != nil {
+					bot.err(err, "convert string to coins")
+					return
+				}
+
+				if balanceInCoins.NanoTON().Cmp(amountInCoins.NanoTON()) < 0 {
+					txt := fmt.Sprintf(template.NotEnoughFunds, balance)
+					if err := bot.sendText(chatID, txt, cancelKeyboard); err != nil {
+						bot.err(err, "send not enough amount")
+						return
+					}
+					return
+				}
+
+				err = bot.redis.SetStage(ctx, userID, storage.StageWalletWaiting)
+				if err != nil {
+					bot.err(err, "set wallet waiting stage")
+					return
+				}
+
+				if err := bot.sendText(chatID, template.AskWallet, cancelKeyboard); err != nil {
+					bot.err(err, "ask wallet")
+					return
+				}
+				return
+			}
+
+			if stage == storage.StageWalletWaiting && len(update.Message.Photo) != 0 {
+
+				index := 0
+				size := 0
+				for i, v := range update.Message.Photo {
+					if v.FileSize > size {
+						index = i
+					}
+				}
+
+				fileURL, err := bot.api.GetFileDirectURL(update.Message.Photo[index].FileID)
+				if err != nil {
+					bot.err(err, "get file direct url")
+					return
+				}
+
+				resp, err := http.Get(fileURL)
+				if err != nil {
+					bot.err(err, "get data from url")
+					return
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					bot.err(errors.New("bad status: "+resp.Status), "http status")
+					return
+				}
+
+				img, err := jpeg.Decode(resp.Body)
+				if err != nil {
+					bot.err(err, "decode jpeg")
+					return
+				}
+
+				// prepare BinaryBitmap
+				bmp, err := gozxing.NewBinaryBitmapFromImage(img)
+				if err != nil {
+					bot.err(err, "prepare binary bitmap")
+					return
+				}
+
+				// decode image
+				qrReader := qrScan.NewQRCodeReader()
+				result, err := qrReader.Decode(bmp, nil)
+				if err != nil {
+					bot.err(err, "decode qr")
+					if err := bot.sendText(chatID, template.InvalidQR, cancelKeyboard); err != nil {
+						bot.err(err, "send decode fail")
+						return
+					}
+					return
+				}
+
+				receiverWallet := result.String()
+
+				err = bot.ton.ValidateWallet(receiverWallet)
+				if err != nil {
+					bot.err(err, "validate receiver wallet")
+					if err := bot.sendText(chatID, template.InvalidWallet, cancelKeyboard); err != nil {
+						bot.err(err, "send validate fail")
+						return
+					}
+					return
+				}
+
+				txt := fmt.Sprintf(template.SendingConfirmation, receiverWallet)
+				if err := bot.sendText(chatID, txt, confirmKeyboard); err != nil {
+					bot.err(err, "send validate fail")
+					return
+				}
+
+			}
+
 		}
 	}
 }
@@ -190,53 +352,3 @@ func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Upd
 //
 //	}
 //}
-
-//func (bot *Bot) sendText(chatID int64, text string, markup telegramBotAPI.ReplyKeyboardMarkup) {
-//	msg := telegramBotAPI.NewMessage(chatID, text)
-//	msg.ParseMode = "HTML"
-//	msg.DisableNotification = true
-//
-//	_, err := bot.api.Send(msg)
-//	if err != nil {
-//		log.Error().Err(err).Send()
-//		bot.err(err, "failed to send text message")
-//	}
-//}
-
-func (bot *Bot) sendTyping(chatID int64) {
-	action := telegramBotAPI.ChatActionConfig{
-		BaseChat: telegramBotAPI.BaseChat{ChatID: chatID},
-		Action:   telegramBotAPI.ChatTyping,
-	}
-	_, err := bot.api.Request(action)
-	if err != nil {
-		msg := "send typing action"
-		log.Error().Err(err).Msg(msg)
-		bot.err(err, msg)
-	}
-}
-
-//func (bot *Bot) sendUploadingPhoto(chatID int64) {
-//	action := telegramBotAPI.ChatActionConfig{
-//		BaseChat: telegramBotAPI.BaseChat{ChatID: chatID},
-//		Action:   telegramBotAPI.ChatUploadPhoto,
-//	}
-//	_, err := bot.api.Request(action)
-//	if err != nil {
-//		log.Error().Err(err).Send()
-//		bot.err(err, "failed to send uploading photo action")
-//	}
-//}
-
-func (bot *Bot) deleteMessage(chatID int64, messageID int) {
-	deleteConfig := telegramBotAPI.DeleteMessageConfig{
-		ChatID:    chatID,
-		MessageID: messageID,
-	}
-	_, err := bot.api.Request(deleteConfig)
-	if err != nil {
-		msg := "auto delete message"
-		log.Error().Err(err).Msg(msg)
-		bot.err(err, msg)
-	}
-}
