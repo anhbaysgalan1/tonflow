@@ -14,7 +14,7 @@ const (
 	SendingConfirmation = "✋ Confirm if you want to send <b>27</b> TON to wallet %s"
 
 	NoFunds        = "🤷️ You have no TON"
-	NotEnoughFunds = "🤷️ Not enough funds on your balance, you only have %s TON"
+	NotEnoughFunds = "🤷️ Not enough funds on your balance, you just have %s TON"
 	InvalidAmount  = "☝️ Only digits and one dot are allowed, try again"
 	InvalidQR      = "🤷 Unable to recognize QR code, try another photo or enter wallet address"
 	InvalidWallet  = "🤷 There is no wallet with this address"
