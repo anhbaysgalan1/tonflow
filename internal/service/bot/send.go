@@ -16,7 +16,7 @@ func (bot *Bot) sendText(chatID int64, text string, markup tgBotAPI.ReplyKeyboar
 	return nil
 }
 
-func (bot *Bot) sendPhoto(chatID int64, data []byte, caption string, markup tgBotAPI.ReplyKeyboardMarkup) error {
+func (bot *Bot) sendPhoto(chatID int64, data []byte, caption string, markup interface{}) error {
 	photoBytes := tgBotAPI.FileBytes{
 		Bytes: data,
 	}

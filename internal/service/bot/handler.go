@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	telegramBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/makiuchi-d/gozxing"
 	qrScan "github.com/makiuchi-d/gozxing/qrcode"
+	"github.com/rs/zerolog/log"
 	"github.com/skip2/go-qrcode"
 	"github.com/xssnick/tonutils-go/tlb"
 	"image/jpeg"
@@ -18,7 +19,7 @@ import (
 	"strings"
 )
 
-func (bot *Bot) handleUpdate(ctx context.Context, update telegramBotAPI.Update) {
+func (bot *Bot) handleUpdate(ctx context.Context, update tgBotAPI.Update) {
 	switch {
 	case update.Message == nil:
 		bot.handleNilMessage(ctx, update)
@@ -27,9 +28,9 @@ func (bot *Bot) handleUpdate(ctx context.Context, update telegramBotAPI.Update) 
 	}
 }
 
-func (bot *Bot) handleNilMessage(_ context.Context, update telegramBotAPI.Update) {
+func (bot *Bot) handleNilMessage(_ context.Context, update tgBotAPI.Update) {
 	if update.CallbackQuery != nil {
-		callback := telegramBotAPI.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
+		callback := tgBotAPI.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
 		_, err := bot.api.Request(callback)
 		if err != nil {
 			bot.err(err, "send callback message")
@@ -37,7 +38,7 @@ func (bot *Bot) handleNilMessage(_ context.Context, update telegramBotAPI.Update
 	}
 }
 
-func (bot *Bot) handleMessage(ctx context.Context, update telegramBotAPI.Update) {
+func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update) {
 	isExist, wallet, stage, err := bot.checkUser(ctx, update)
 	if err != nil {
 		bot.err(err, "check user")
@@ -52,7 +53,7 @@ func (bot *Bot) handleMessage(ctx context.Context, update telegramBotAPI.Update)
 	}
 }
 
-func (bot *Bot) checkUser(ctx context.Context, update telegramBotAPI.Update) (bool, string, storage.Stage, error) {
+func (bot *Bot) checkUser(ctx context.Context, update tgBotAPI.Update) (bool, string, storage.Stage, error) {
 	bot.sendTyping(update.Message.From.ID)
 
 	flowUser := toFlowUser(update.SentFrom())
@@ -93,7 +94,7 @@ func (bot *Bot) checkUser(ctx context.Context, update telegramBotAPI.Update) (bo
 	return true, wlt, stage, nil
 }
 
-func (bot *Bot) handleCommand(ctx context.Context, update telegramBotAPI.Update, isExist bool, wallet string) {
+func (bot *Bot) handleCommand(ctx context.Context, update tgBotAPI.Update, isExist bool, wallet string) {
 	switch update.Message.Command() {
 	case "start":
 		qr, err := qrcode.Encode(wallet, qrcode.Medium, 512)
@@ -113,10 +114,11 @@ func (bot *Bot) handleCommand(ctx context.Context, update telegramBotAPI.Update,
 		if err := bot.sendPhoto(update.Message.Chat.ID, qr, caption, mainKeyboard); err != nil {
 			bot.err(err, "send wallet address and qr")
 		}
+
 	}
 }
 
-func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Update, isExist bool, wallet string, stage storage.Stage) {
+func (bot *Bot) handleUserMessage(ctx context.Context, update tgBotAPI.Update, isExist bool, wallet string, stage storage.Stage) {
 	chatID := update.Message.Chat.ID
 	userID := strconv.FormatInt(toFlowUser(update.SentFrom()).ID, 10)
 	text := update.Message.Text
@@ -249,6 +251,8 @@ func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Upd
 					return
 				}
 
+				log.Debug().Msg(fileURL)
+
 				resp, err := http.Get(fileURL)
 				if err != nil {
 					bot.err(err, "get data from url")
@@ -310,7 +314,7 @@ func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Upd
 	}
 }
 
-//func (bot *Bot) handleAdminMessage(ctx context.Context, update telegramBotAPI.Update) {
+//func (bot *Bot) handleAdminMessage(ctx context.Context, update tgBotAPItgBotAPI.Update) {
 //	bot.deleteMessage(update.Message.Chat.ID, update.Message.MessageID)
 //
 //	switch {
@@ -320,7 +324,7 @@ func (bot *Bot) handleUserMessage(ctx context.Context, update telegramBotAPI.Upd
 //		if err != nil {
 //			log.Error().Err(err).Send()
 //			bot.err(err, "failed to add picture in storage")
-//			bot.sendText(update.Message.Chat.ID, "One of the pictures was not saved in the database", telegramBotAPI.ReplyKeyboardMarkup{})
+//			bot.sendText(update.Message.Chat.ID, "One of the pictures was not saved in the database", tgBotAPItgBotAPI.ReplyKeyboardMarkup{})
 //		}
 //	case update.Message.Text == "778":
 //		bot.sendUploadingPhoto(update.Message.Chat.ID)

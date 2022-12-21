@@ -23,16 +23,14 @@ var (
 			tgBotAPI.NewKeyboardButton(template.CancelButton),
 		))
 
-	addressWithQR = tgBotAPI.NewInlineKeyboardMarkup(
-		tgBotAPI.NewInlineKeyboardRow(
-			tgBotAPI.NewInlineKeyboardButtonSwitch(
-				"Tonkeeper",
-				"https://app.tonkeeper.com/transfer/kQDgEEX3G0xKggopmwKrLowIR_QMxq-zgRqA9jF6JSi5DRl_?amount=1000000000&text=Comment"),
-		),
+	depositInline = tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonURL(
+				"Tonkeeper",
+				"https://app.tonkeeper.com/transfer/kQDgEEX3G0xKggopmwKrLowIR_QMxq-zgRqA9jF6JSi5DRl_"),
+			tgBotAPI.NewInlineKeyboardButtonURL(
 				"Tonhub",
-				"https://tonhub.com/transfer/kQDgEEX3G0xKggopmwKrLowIR_QMxq-zgRqA9jF6JSi5DRl_?amount=1000000000&text=Comment"),
+				"https://tonhub.com/transfer/kQDgEEX3G0xKggopmwKrLowIR_QMxq-zgRqA9jF6JSi5DRl_"),
 		),
 	)
 )
