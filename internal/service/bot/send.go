@@ -2,7 +2,7 @@ package bot
 
 import tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-func (bot *Bot) sendText(chatID int64, text string, markup tgBotAPI.ReplyKeyboardMarkup) error {
+func (bot *Bot) sendText(chatID int64, text string, markup interface{}) error {
 	msg := tgBotAPI.NewMessage(chatID, text)
 	msg.ParseMode = "HTML"
 	msg.DisableNotification = true

@@ -2,7 +2,7 @@ package bot
 
 import (
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"park-wallet/internal/service/bot/model"
+	"tonflow/internal/service/bot/model"
 )
 
 func toFlowUser(u *tgBotAPI.User) *model.User {

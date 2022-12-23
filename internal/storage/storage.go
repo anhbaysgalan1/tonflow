@@ -2,9 +2,9 @@ package storage
 
 import (
 	"golang.org/x/net/context"
-	"park-wallet/internal/service/bot/model"
-	"park-wallet/internal/service/ton"
 	"time"
+	"tonflow/internal/service/bot/model"
+	"tonflow/internal/service/ton"
 )
 
 type Stage string

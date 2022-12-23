@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"park-wallet/internal/service/bot/model"
-	"park-wallet/internal/service/ton"
-	"park-wallet/internal/storage"
 	"time"
+	"tonflow/internal/service/bot/model"
+	"tonflow/internal/service/ton"
+	"tonflow/internal/storage"
 )
 
 type DB struct {

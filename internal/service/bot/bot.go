@@ -3,9 +3,9 @@ package bot
 import (
 	"context"
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"park-wallet/internal/service/ton"
-	"park-wallet/internal/storage"
 	"sync"
+	"tonflow/internal/service/ton"
+	"tonflow/internal/storage"
 )
 
 type Bot struct {

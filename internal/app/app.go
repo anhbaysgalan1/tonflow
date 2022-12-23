@@ -5,12 +5,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"os"
 	"os/signal"
-	"park-wallet/internal/service/bot"
-	"park-wallet/internal/service/ton"
-	"park-wallet/internal/storage/postgres"
-	"park-wallet/internal/storage/redis"
-	"park-wallet/pkg"
 	"syscall"
+	"tonflow/internal/service/bot"
+	"tonflow/internal/service/ton"
+	"tonflow/internal/storage/postgres"
+	"tonflow/internal/storage/redis"
+	"tonflow/pkg"
 )
 
 type App struct {

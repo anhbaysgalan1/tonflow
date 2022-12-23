@@ -1,4 +1,4 @@
-module park-wallet
+module tonflow
 
 go 1.19
 

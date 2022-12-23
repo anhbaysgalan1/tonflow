@@ -5,9 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v9"
-	"github.com/rs/zerolog/log"
-	"park-wallet/internal/storage"
 	"time"
+	"tonflow/internal/storage"
 )
 
 type DB struct {
@@ -20,7 +19,6 @@ type Config struct {
 }
 
 func strToStage(s string) (storage.Stage, error) {
-	log.Debug().Msg(s)
 	switch s {
 	case "unset":
 		return storage.StageUnset, nil

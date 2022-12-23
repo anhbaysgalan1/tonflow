@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/joho/godotenv"
 	"os"
-	"park-wallet/internal/storage/postgres"
-	"park-wallet/internal/storage/redis"
 	"strconv"
+	"tonflow/internal/storage/postgres"
+	"tonflow/internal/storage/redis"
 )
 
 type config struct {

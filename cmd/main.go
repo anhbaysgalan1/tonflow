@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"park-wallet/internal/app"
+	"tonflow/internal/app"
 )
 
 func main() {
