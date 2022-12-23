@@ -6,10 +6,10 @@ import (
 )
 
 func main() {
-	flowWallet, err := app.NewApp()
+	tonflow, err := app.NewApp()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	flowWallet.Run()
+	tonflow.Run()
 }
