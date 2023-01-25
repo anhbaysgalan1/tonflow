@@ -1,19 +1,25 @@
 package model
 
 import (
+	"github.com/xssnick/tonutils-go/ton/wallet"
 	"time"
-	"tonflow/tonclient"
 )
 
 type User struct {
-	ID             int64             `json:"id"`
-	Username       string            `json:"username"`
-	FirstName      string            `json:"firstName"`
-	LastName       string            `json:"lastName"`
-	LanguageCode   string            `json:"languageCode"`
-	Wallet         *tonclient.Wallet `json:"wallet"`
-	StageData      *StageData        `json:"stageData"`
-	FirstMessageAt time.Time         `json:"firstMessageAt"`
+	ID             int64      `json:"id"`
+	Username       string     `json:"username"`
+	FirstName      string     `json:"firstName"`
+	LastName       string     `json:"lastName"`
+	LanguageCode   string     `json:"languageCode"`
+	Wallet         *Wallet    `json:"wallet"`
+	StageData      *StageData `json:"stageData"`
+	FirstMessageAt time.Time  `json:"firstMessageAt"`
+}
+
+type Wallet struct {
+	Address string         `json:"address"`
+	Version wallet.Version `json:"version"`
+	Seed    string         `json:"seed"`
 }
 
 type StageData struct {

@@ -7,7 +7,7 @@ down:
 	docker-compose down
 log:
 	docker logs --follow tonflow
-rebuild-and-restart:
+rebuild:
 	make build
 	make up
 	make log

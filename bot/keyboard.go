@@ -3,76 +3,75 @@ package bot
 import (
 	"encoding/json"
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"tonflow/bot/template"
 )
 
 var (
 	mainKeyboard = tgBotAPI.NewReplyKeyboard(
 		tgBotAPI.NewKeyboardButtonRow(
-			tgBotAPI.NewKeyboardButton(template.ReceiveButton),
-			tgBotAPI.NewKeyboardButton(template.SendButton),
+			tgBotAPI.NewKeyboardButton(ReceiveButton),
+			tgBotAPI.NewKeyboardButton(SendButton),
 		), tgBotAPI.NewKeyboardButtonRow(
-			tgBotAPI.NewKeyboardButton(template.BalanceButton),
+			tgBotAPI.NewKeyboardButton(BalanceButton),
 		))
 	mainInlineKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.ReceiveButton,
+				ReceiveButton,
 				"receive"),
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.SendButton,
+				SendButton,
 				"send"),
 		),
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.BalanceButton,
+				BalanceButton,
 				"balance"),
 		))
 
 	mainInlineKeyboardCheckBalance = tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.ReceiveButton,
+				ReceiveButton,
 				"receive"),
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.SendButton,
+				SendButton,
 				"send"),
 		),
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.UpdateBalanceButton,
+				UpdateBalanceButton,
 				"update balance"),
 		))
 
 	confirmKeyboard = tgBotAPI.NewReplyKeyboard(
 		tgBotAPI.NewKeyboardButtonRow(
-			tgBotAPI.NewKeyboardButton(template.ConfirmButton),
-			tgBotAPI.NewKeyboardButton(template.CancelButton),
+			tgBotAPI.NewKeyboardButton(ConfirmButton),
+			tgBotAPI.NewKeyboardButton(CancelButton),
 		))
 	confirmInlineKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.ConfirmButton,
+				ConfirmButton,
 				"confirm"),
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.CancelButton,
+				CancelButton,
 				"cancel"),
 		),
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.AddCommentButton,
+				AddCommentButton,
 				"add comment"),
 		),
 	)
 
 	cancelKeyboard = tgBotAPI.NewReplyKeyboard(
 		tgBotAPI.NewKeyboardButtonRow(
-			tgBotAPI.NewKeyboardButton(template.CancelButton),
+			tgBotAPI.NewKeyboardButton(CancelButton),
 		))
 	cancelInlineKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.CancelButton,
+				CancelButton,
 				"cancel"),
 		))
 
@@ -110,15 +109,15 @@ func newInlineMainButtons(data string) tgBotAPI.InlineKeyboardMarkup {
 	return tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.ReceiveButton,
+				ReceiveButton,
 				"receive"),
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.SendButton,
+				SendButton,
 				data),
 		),
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
-				template.BalanceButton,
+				BalanceButton,
 				"balance"),
 		))
 }

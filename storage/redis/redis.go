@@ -6,18 +6,12 @@ import (
 	"github.com/go-redis/redis/v9"
 	"strconv"
 	"time"
-	"tonflow/bot/model"
+	"tonflow/model"
 	"tonflow/storage"
-	"tonflow/tonclient"
 )
 
 type DB struct {
 	*redis.Client
-}
-
-type Config struct {
-	Host string
-	Port string
 }
 
 func NewRedisClient(URI string) (storage.Cache, error) {
@@ -44,14 +38,10 @@ func NewRedisClient(URI string) (storage.Cache, error) {
 func (db *DB) SetUserCache(ctx context.Context, cache *model.UserCache) error {
 	id := strconv.FormatInt(cache.UserID, 10)
 
-	// log.Debugf("SetUserCache() cache.Data to marshal:\n%v", pkg.AnyPrint(cache.Data))
-
 	data, err := json.Marshal(cache.Data)
 	if err != nil {
 		return err
 	}
-
-	// log.Debugf("SetUserCache() marshaled:\n%v", pkg.AnyPrint(string(data)))
 
 	err = db.Set(ctx, id, data, 0).Err()
 	if err != nil {
@@ -70,11 +60,11 @@ func (db *DB) GetUserCache(ctx context.Context, userID int64) (*model.User, erro
 	}
 
 	b := []byte(val)
-	user := model.User{Wallet: &tonclient.Wallet{}}
-	err = json.Unmarshal(b, &user)
+	user := &model.User{Wallet: &model.Wallet{}}
+	err = json.Unmarshal(b, user)
 	if err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	return user, nil
 }

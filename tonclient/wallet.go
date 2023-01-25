@@ -2,64 +2,57 @@ package tonclient
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/ton/wallet"
 	"strings"
+	"tonflow/model"
 )
 
-func (ton *TonClient) NewWallet() (*Wallet, error) {
+func (ton *TonClient) NewWallet() (*model.Wallet, error) {
 	seed := wallet.NewSeed()
-
 	version := wallet.V4R2
 
 	w, err := wallet.FromSeed(ton.tonAPI, seed, version)
 	if err != nil {
-		log.Error().Err(err).Msg("wallet from seed")
 		return nil, err
 	}
 
-	seedString := strings.Join(seed, " ")
-	return &Wallet{
+	return &model.Wallet{
 		Address: w.Address().String(),
 		Version: version,
-		Seed:    seedString,
+		Seed:    strings.Join(seed, " "),
 	}, nil
 }
 
-func (ton *TonClient) ValidateWallet(wallet string) error {
-	_, err := address.ParseAddr(wallet)
+func (ton *TonClient) ValidateWallet(addr string) error {
+	_, err := address.ParseAddr(addr)
 	if err != nil {
-		log.Error().Err(err).Msg("parse TON address")
 		return err
 	}
 	return nil
 }
 
-func (ton *TonClient) GetWalletBalance(wallet string) (string, error) {
+func (ton *TonClient) GetWalletBalance(addr string) (string, error) {
 	ctx := ton.liteClient.StickyContext(context.Background())
 
-	addr, err := address.ParseAddr(wallet)
+	wltAddr, err := address.ParseAddr(addr)
 	if err != nil {
-		log.Error().Err(err).Msg("parse TON address")
 		return "", err
 	}
 
 	block, err := ton.tonAPI.GetMasterchainInfo(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("get block")
 		return "", err
 	}
 
-	wlt, err := ton.tonAPI.GetAccount(ctx, block, addr)
+	wlt, err := ton.tonAPI.GetAccount(ctx, block, wltAddr)
 	if err != nil {
-		log.Error().Err(err).Msg("get account info")
 		return "", err
 	}
 
-	if wlt.IsActive {
-		return wlt.State.Balance.TON(), nil
+	if !wlt.IsActive {
+		return "0", nil
 	}
 
-	return "0", nil
+	return wlt.State.Balance.TON(), nil
 }

@@ -5,25 +5,13 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	log "github.com/sirupsen/logrus"
 	"time"
-	"tonflow/bot/model"
+	"tonflow/model"
 	"tonflow/storage"
-	"tonflow/tonclient"
 )
 
 type DB struct {
 	*pgxpool.Pool
-}
-
-type Config struct {
-	Host      string
-	Port      string
-	User      string
-	Password  string
-	Name      string
-	SSL       string
-	Migration bool
 }
 
 func NewConnection(URI string) (storage.Storage, error) {
@@ -76,26 +64,25 @@ func (db *DB) GetUser(ctx context.Context, id int64) (*model.User, error) {
 		from tonflow.users
 		where id = $1
 	`
-	user := &model.User{Wallet: &tonclient.Wallet{}}
+	user := &model.User{Wallet: &model.Wallet{}}
 
 	err := db.QueryRow(ctx, query, id).Scan(
-		&user.ID,
-		&user.Username,
-		&user.FirstName,
-		&user.LastName,
-		&user.LanguageCode,
-		&user.Wallet.Address,
-		&user.FirstMessageAt,
+		user.ID,
+		user.Username,
+		user.FirstName,
+		user.LastName,
+		user.LanguageCode,
+		user.Wallet.Address,
+		user.FirstMessageAt,
 	)
 	if err != nil {
-		log.Error("GetUser(): %v", err)
 		return nil, err
 	}
 
 	return user, nil
 }
 
-func (db *DB) AddWallet(ctx context.Context, wallet *tonclient.Wallet, userID int64) error {
+func (db *DB) AddWallet(ctx context.Context, wallet *model.Wallet, userID int64) error {
 	tx, err := db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return err
@@ -103,10 +90,9 @@ func (db *DB) AddWallet(ctx context.Context, wallet *tonclient.Wallet, userID in
 	defer func() {
 		if err != nil {
 			tx.Rollback(ctx)
-
-		} else {
-			tx.Commit(ctx)
+			return
 		}
+		tx.Commit(ctx)
 	}()
 
 	query := `
@@ -135,7 +121,7 @@ func (db *DB) AddWallet(ctx context.Context, wallet *tonclient.Wallet, userID in
 	return nil
 }
 
-func (db *DB) GetWallet(ctx context.Context, address string) (*tonclient.Wallet, error) {
+func (db *DB) GetWallet(ctx context.Context, address string) (*model.Wallet, error) {
 	query := `
 		select address,
 		       version,
@@ -143,10 +129,13 @@ func (db *DB) GetWallet(ctx context.Context, address string) (*tonclient.Wallet,
 		from tonflow.wallets 
 		where address = $1
 	`
-	wallet := &tonclient.Wallet{}
-	err := db.QueryRow(ctx, query, address).Scan(&wallet.Address, &wallet.Version, &wallet.Seed)
+	wallet := &model.Wallet{}
+	err := db.QueryRow(ctx, query, address).Scan(
+		wallet.Address,
+		wallet.Version,
+		wallet.Seed,
+	)
 	if err != nil {
-		log.Error("GetWallet(): %v", err)
 		return nil, err
 	}
 

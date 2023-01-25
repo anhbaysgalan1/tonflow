@@ -59,7 +59,7 @@ func GetConfig() {
 			TimestampFormat:        timeLayout,
 			QuoteEmptyFields:       true,
 		})
-		log.SetReportCaller(true)
+		log.SetReportCaller(false)
 	}
 
 	Config.RedisURI = fmt.Sprintf("%s:%s", Config.RedisHost, Config.RedisPort)
