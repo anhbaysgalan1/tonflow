@@ -42,7 +42,7 @@ func (bot *Bot) deleteMessage(chatID int64, messageID int) {
 	}
 	_, err := bot.api.Request(deleteConfig)
 	if err != nil {
-		bot.err(err, "delete message")
+		bot.sendErr(err, "delete message")
 	}
 }
 
@@ -53,6 +53,6 @@ func (bot *Bot) sendTyping(chatID int64) {
 	}
 	_, err := bot.api.Request(action)
 	if err != nil {
-		bot.err(err, "send typing action")
+		bot.sendErr(err, "send typing action")
 	}
 }

@@ -1,4 +1,4 @@
-package ton
+package tonclient
 
 import (
 	"context"
@@ -8,13 +8,14 @@ import (
 	"strings"
 )
 
-func (ton *Ton) NewWallet() (*Wallet, error) {
+func (ton *TonClient) NewWallet() (*Wallet, error) {
 	seed := wallet.NewSeed()
 
 	version := wallet.V4R2
 
 	w, err := wallet.FromSeed(ton.tonAPI, seed, version)
 	if err != nil {
+		log.Error().Err(err).Msg("wallet from seed")
 		return nil, err
 	}
 
@@ -26,15 +27,16 @@ func (ton *Ton) NewWallet() (*Wallet, error) {
 	}, nil
 }
 
-func (ton *Ton) ValidateWallet(wallet string) error {
+func (ton *TonClient) ValidateWallet(wallet string) error {
 	_, err := address.ParseAddr(wallet)
 	if err != nil {
+		log.Error().Err(err).Msg("parse TON address")
 		return err
 	}
 	return nil
 }
 
-func (ton *Ton) GetWalletBalance(wallet string) (string, error) {
+func (ton *TonClient) GetWalletBalance(wallet string) (string, error) {
 	ctx := ton.liteClient.StickyContext(context.Background())
 
 	addr, err := address.ParseAddr(wallet)

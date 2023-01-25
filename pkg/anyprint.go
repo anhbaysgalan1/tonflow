@@ -6,14 +6,10 @@ import (
 )
 
 // AnyPrint returns JSON-like string of any object with optional message
-func AnyPrint(message string, i interface{}) string {
-	JSON, err := json.MarshalIndent(i, "", "   ")
+func AnyPrint(obj interface{}) string {
+	JSON, err := json.MarshalIndent(obj, "", "   ")
 	if err != nil {
-		fmt.Printf("AnyPrint: %s\n", err)
+		fmt.Printf("AnyPrint: %s", err)
 	}
-	msg := "\n"
-	if message != "" {
-		msg = message + ":\n"
-	}
-	return msg + string(JSON)
+	return string(JSON)
 }

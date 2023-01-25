@@ -3,7 +3,7 @@ package bot
 import (
 	"encoding/json"
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"tonflow/internal/service/bot/template"
+	"tonflow/bot/template"
 )
 
 var (

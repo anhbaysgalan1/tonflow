@@ -4,22 +4,30 @@ import (
 	"context"
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"sync"
-	"tonflow/internal/service/ton"
-	"tonflow/internal/storage"
+	"tonflow/storage"
+	"tonflow/tonclient"
 )
 
 type Bot struct {
 	BotName   string
 	adminID   int64
 	api       *tgBotAPI.BotAPI
-	ton       *ton.Ton
-	redis     storage.TemporaryStorage
+	ton       *tonclient.TonClient
+	redis     storage.Cache
 	storage   storage.Storage
 	cryptoKey string
 	stopCh    chan struct{}
 }
 
-func NewBot(token string, admin int64, ton *ton.Ton, redisClient storage.TemporaryStorage, storage storage.Storage, debug bool, cryptoKey string) (*Bot, error) {
+func NewBot(
+	token string,
+	admin int64,
+	ton *tonclient.TonClient,
+	redisClient storage.Cache,
+	storage storage.Storage,
+	debug bool,
+	cryptoKey string,
+) (*Bot, error) {
 	botAPI, err := tgBotAPI.NewBotAPI(token)
 	if err != nil {
 		return nil, err
@@ -27,8 +35,7 @@ func NewBot(token string, admin int64, ton *ton.Ton, redisClient storage.Tempora
 
 	botAPI.Debug = debug
 
-	l := logger{}
-	err = tgBotAPI.SetLogger(l)
+	err = tgBotAPI.SetLogger(logger{})
 	if err != nil {
 		return nil, err
 	}
@@ -50,14 +57,13 @@ func (bot *Bot) Start() {
 	u := tgBotAPI.NewUpdate(0)
 	u.Timeout = 60
 	updates := bot.api.GetUpdatesChan(u)
-
-	var wg sync.WaitGroup
+	wg := new(sync.WaitGroup)
 
 	go func() {
 		for update := range updates {
-			wg.Add(1)
 			up := update
 			go func() {
+				wg.Add(1)
 				defer wg.Done()
 				bot.handleUpdate(context.Background(), up)
 			}()

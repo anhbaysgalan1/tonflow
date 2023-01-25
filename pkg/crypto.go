@@ -12,7 +12,7 @@ func EncryptAES(key []byte, data string) (string, error) {
 	}
 
 	out := make([]byte, len(data))
-	c.Encrypt(out, []byte(out))
+	c.Encrypt(out, []byte(data))
 
 	return hex.EncodeToString(out), nil
 }
