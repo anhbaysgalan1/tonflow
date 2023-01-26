@@ -26,6 +26,7 @@ type StageData struct {
 	Stage         Stage  `json:"stage"`
 	AddressToSend string `json:"addressToSend"`
 	AmountToSend  string `json:"amountToSend"`
+	Comment       string `json:"comment"`
 }
 
 type Stage uint8
@@ -34,6 +35,7 @@ const (
 	ZeroStage Stage = iota
 	AddressWait
 	AmountWait
+	CommentWait
 	ConfirmationWait
 )
 
@@ -47,6 +49,8 @@ func (s Stage) String() string {
 		return "amount waiting"
 	case 3:
 		return "confirmation waiting"
+	case 4:
+		return "comment waiting"
 	default:
 		return "undefined stage"
 	}

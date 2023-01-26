@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	log "github.com/sirupsen/logrus"
 	"tonflow/model"
@@ -35,15 +36,19 @@ func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update, user 
 	default:
 		switch {
 		case user.StageData.Stage == model.AddressWait:
-			bot.parseSendingAddress(ctx, update, user)
+			bot.acceptSendingAddress(ctx, update, user)
 		case user.StageData.Stage == model.AmountWait:
-			bot.validateSendingAmount(ctx, update, user)
+			bot.acceptSendingAmount(ctx, update, user)
+		case user.StageData.Stage == model.CommentWait:
+			bot.acceptComment(ctx, update, user)
 		default:
+			/// need implement this right
 			err := bot.sendText(update.Message.Chat.ID, "Nothing to do...", nil)
 			if err != nil {
 				log.Error(err)
 				return
 			}
+			///
 		}
 	}
 }
@@ -61,5 +66,9 @@ func (bot *Bot) handleCallback(ctx context.Context, update tgBotAPI.Update, user
 	case "cancel":
 		bot.inlineCancel(ctx, update, user)
 		bot.inlineBalance(update, user)
+	case "add comment":
+		bot.inlineAddComment(ctx, update, user)
+	default:
+		log.Error(fmt.Errorf("need handle this case"))
 	}
 }

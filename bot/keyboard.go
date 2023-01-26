@@ -50,4 +50,15 @@ var (
 				"add comment"),
 		),
 	)
+
+	inlineConfirmWithCommentKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
+		tgBotAPI.NewInlineKeyboardRow(
+			tgBotAPI.NewInlineKeyboardButtonData(
+				ConfirmButton,
+				"confirm"),
+			tgBotAPI.NewInlineKeyboardButtonData(
+				CancelButton,
+				"cancel"),
+		),
+	)
 )

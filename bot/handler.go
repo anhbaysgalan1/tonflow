@@ -111,7 +111,7 @@ func (bot *Bot) cmdStart(update tgBotAPI.Update, user *model.User, isExisted boo
 	}
 }
 
-func (bot *Bot) parseSendingAddress(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+func (bot *Bot) acceptSendingAddress(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	chatID := update.Message.Chat.ID
 	photos := update.Message.Photo
 	addr := update.Message.Text
@@ -194,7 +194,7 @@ func (bot *Bot) parseSendingAddress(ctx context.Context, update tgBotAPI.Update,
 	}
 }
 
-func (bot *Bot) validateSendingAmount(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+func (bot *Bot) acceptSendingAmount(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	text := update.Message.Text
 	chatID := update.Message.Chat.ID
 	wallet := user.Wallet.Address
@@ -242,6 +242,26 @@ func (bot *Bot) validateSendingAmount(ctx context.Context, update tgBotAPI.Updat
 
 	txt := fmt.Sprintf(SendingConfirmation, user.StageData.AddressToSend, amount)
 	if err = bot.sendText(chatID, txt, inlineConfirmKeyboard); err != nil {
+		log.Error(err)
+	}
+}
+
+func (bot *Bot) acceptComment(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	chatID := update.Message.Chat.ID
+	addr := user.StageData.AddressToSend
+	amount := user.StageData.AmountToSend
+	comment := update.Message.Text
+
+	user.StageData.Stage = model.ConfirmationWait
+	user.StageData.Comment = amount
+	err := bot.redis.SetUserCache(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	txt := fmt.Sprintf(SendingConfirmation, addr, amount) + fmt.Sprintf(Comment, comment)
+	if err = bot.sendText(chatID, txt, inlineConfirmWithCommentKeyboard); err != nil {
 		log.Error(err)
 	}
 }
@@ -366,7 +386,7 @@ func (bot *Bot) inlineCancel(ctx context.Context, update tgBotAPI.Update, user *
 	messageID := update.CallbackQuery.Message.MessageID
 	text := update.CallbackQuery.Message.Text
 
-	newText := text + fmt.Sprintf("\n<b>%s</b>", Canceled)
+	newText := text + Canceled
 
 	msg := tgBotAPI.EditMessageTextConfig{
 		BaseEdit: tgBotAPI.BaseEdit{
@@ -391,6 +411,27 @@ func (bot *Bot) inlineCancel(ctx context.Context, update tgBotAPI.Update, user *
 
 	_, err = bot.api.Request(msg)
 	if err != nil {
+		log.Error(err)
+	}
+
+	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, "")
+	_, err = bot.api.Request(cb)
+	if err != nil {
+		log.Error(err)
+	}
+}
+
+func (bot *Bot) inlineAddComment(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	chatID := update.CallbackQuery.Message.Chat.ID
+
+	user.StageData.Stage = model.CommentWait
+	err := bot.redis.SetUserCache(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	if err = bot.sendText(chatID, AskComment, nil); err != nil {
 		log.Error(err)
 	}
 
