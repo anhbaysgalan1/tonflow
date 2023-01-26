@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "github.com/sirupsen/logrus"
 	"sync"
 	"tonflow/storage"
 	"tonflow/tonclient"
@@ -17,6 +18,17 @@ type Bot struct {
 	storage   storage.Storage
 	cryptoKey string
 	stopCh    chan struct{}
+}
+
+type logger struct {
+}
+
+func (l logger) Println(v ...interface{}) {
+	log.Debugln(v...)
+}
+
+func (l logger) Printf(format string, v ...interface{}) {
+	log.Debugf(format, v...)
 }
 
 func NewBot(

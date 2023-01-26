@@ -51,8 +51,3 @@ func (s Stage) String() string {
 		return "undefined stage"
 	}
 }
-
-type UserCache struct {
-	UserID int64
-	Data   *User
-}

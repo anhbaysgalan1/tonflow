@@ -1,6 +1,9 @@
 package bot
 
-import tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+import (
+	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	log "github.com/sirupsen/logrus"
+)
 
 func (bot *Bot) sendText(chatID int64, text string, markup interface{}) error {
 	msg := tgBotAPI.NewMessage(chatID, text)
@@ -40,9 +43,10 @@ func (bot *Bot) deleteMessage(chatID int64, messageID int) {
 		ChatID:    chatID,
 		MessageID: messageID,
 	}
+
 	_, err := bot.api.Request(deleteConfig)
 	if err != nil {
-		bot.sendErr(err, "delete message")
+		log.Error(err)
 	}
 }
 
@@ -51,8 +55,9 @@ func (bot *Bot) sendTyping(chatID int64) {
 		BaseChat: tgBotAPI.BaseChat{ChatID: chatID},
 		Action:   tgBotAPI.ChatTyping,
 	}
+
 	_, err := bot.api.Request(action)
 	if err != nil {
-		bot.sendErr(err, "send typing action")
+		log.Error(err)
 	}
 }

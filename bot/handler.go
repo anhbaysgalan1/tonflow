@@ -16,7 +16,6 @@ import (
 	"net/http"
 	"strings"
 	"tonflow/model"
-	"tonflow/pkg"
 )
 
 // Returns user object from cache or database in case of no cache.
@@ -44,11 +43,7 @@ func (bot *Bot) getTonflowUser(ctx context.Context, tgUser *tgBotAPI.User) (*mod
 				return nil, false, err
 			}
 
-			wlt.Seed, err = pkg.EncryptAES([]byte(bot.cryptoKey), wlt.Seed)
-			if err != nil {
-				log.Error(err)
-				return nil, false, err
-			}
+			log.Debugf("generated seed: %v", wlt.Seed)
 
 			err = bot.storage.AddUser(ctx, tgUser)
 			if err != nil {
@@ -82,12 +77,7 @@ func (bot *Bot) getTonflowUser(ctx context.Context, tgUser *tgBotAPI.User) (*mod
 			StageData:    &model.StageData{},
 		}
 
-		userCache := &model.UserCache{
-			UserID: tgUser.ID,
-			Data:   user,
-		}
-
-		err = bot.redis.SetUserCache(ctx, userCache)
+		err = bot.redis.SetUserCache(ctx, user)
 		if err != nil {
 			log.Error(err)
 			return nil, true, err
@@ -97,21 +87,182 @@ func (bot *Bot) getTonflowUser(ctx context.Context, tgUser *tgBotAPI.User) (*mod
 	return user, isExisted, nil
 }
 
-func (bot *Bot) inlineReceiveCoins(user *model.User) {
+func (bot *Bot) cmdStart(update tgBotAPI.Update, user *model.User, isExisted bool) {
+	chatID := update.Message.Chat.ID
+	firstName := update.Message.From.FirstName
+	address := user.Wallet.Address
+
+	qr, err := qrcode.Encode(address, qrcode.Medium, 512)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	caption := ""
+	switch isExisted {
+	case true:
+		caption = fmt.Sprintf(WelcomeExistedUser, firstName, address)
+	case false:
+		caption = fmt.Sprintf(WelcomeNewUser, firstName, address)
+	}
+
+	if err = bot.sendPhoto(chatID, qr, caption, inlineMainKeyboard); err != nil {
+		log.Error(err)
+	}
+}
+
+func (bot *Bot) parseSendingQR(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	chatID := update.Message.Chat.ID
+	photos := update.Message.Photo
+
+	index, size := 0, 0
+	for i, v := range photos {
+		if v.FileSize > size {
+			index = i
+		}
+	}
+
+	fileURL, err := bot.api.GetFileDirectURL(photos[index].FileID)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	resp, err := http.Get(fileURL)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error(err)
+		return
+	}
+
+	img, err := jpeg.Decode(resp.Body)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	// prepare BinaryBitmap
+	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	// decode image
+	qrReader := qrScan.NewQRCodeReader()
+	result, err := qrReader.Decode(bmp, nil)
+	if err != nil {
+		log.Warnf("failed to decode qr %v: %v", fileURL, err)
+		if err = bot.sendText(chatID, InvalidQR, nil); err != nil {
+			log.Error(err)
+			return
+		}
+		return
+	}
+
+	receiverAddress := result.String()
+
+	err = bot.ton.ValidateWallet(receiverAddress)
+	if err != nil {
+		log.Warnf("failed to validate address %v: %v", receiverAddress, err)
+		if err = bot.sendText(chatID, InvalidWallet, nil); err != nil {
+			log.Error(err)
+			return
+		}
+		return
+	}
+
+	// set user stage in cache
+	user.StageData.Stage = model.AmountWait
+	user.StageData.AddressToSend = receiverAddress
+	err = bot.redis.SetUserCache(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	if err = bot.sendText(chatID, AskAmount, nil); err != nil {
+		log.Error(err)
+	}
+
+}
+
+func (bot *Bot) validateSendingAmount(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	text := update.Message.Text
+	chatID := update.Message.Chat.ID
+	wallet := user.Wallet.Address
+
+	amount := strings.ReplaceAll(text, " ", "")
+	amount = strings.ReplaceAll(amount, ",", ".")
+
+	amountInCoins, err := tlb.FromTON(amount)
+	if err != nil {
+		log.Warnf("failed to convert %v to coins: %v", amountInCoins, err)
+		if err = bot.sendText(chatID, InvalidAmount, struct{}{}); err != nil {
+			log.Error(err)
+			return
+		}
+		return
+	}
+
+	balance, err := bot.ton.GetWalletBalance(wallet)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	balanceInCoins, err := tlb.FromTON(balance)
+	if err != nil {
+		log.Error()
+		return
+	}
+
+	if balanceInCoins.NanoTON().Cmp(amountInCoins.NanoTON()) < 0 {
+		txt := fmt.Sprintf(NotEnoughFunds, balance)
+		if err = bot.sendText(chatID, txt, nil); err != nil {
+			return
+		}
+		return
+	}
+
+	user.StageData.Stage = model.ConfirmationWait
+	user.StageData.AmountToSend = amount
+	err = bot.redis.SetUserCache(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	txt := fmt.Sprintf(SendingConfirmation, user.StageData.AddressToSend, amount)
+	if err = bot.sendText(chatID, txt, inlineConfirmKeyboard); err != nil {
+		log.Error(err)
+	}
+}
+
+func (bot *Bot) inlineReceiveCoins(update tgBotAPI.Update, user *model.User) {
 	address := user.Wallet.Address
 	chatID := user.ID
 
 	qr, err := qrcode.Encode(address, qrcode.Medium, 512)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "generate qr")
 		return
 	}
 
 	caption := fmt.Sprintf("<code>%s</code>", address) + "\n\n" + ReceiveInstruction
-	if err := bot.sendPhoto(chatID, qr, caption, mainInlineKeyboard); err != nil {
+	if err := bot.sendPhoto(chatID, qr, caption, inlineMainKeyboard); err != nil {
 		log.Error(err)
-		bot.sendErr(err, "send wallet address and qr")
+	}
+
+	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, "")
+	_, err = bot.api.Request(cb)
+	if err != nil {
+		log.Error(err)
 	}
 }
 
@@ -122,42 +273,31 @@ func (bot *Bot) inlineSendCoins(ctx context.Context, update tgBotAPI.Update, use
 	balance, err := bot.ton.GetWalletBalance(address)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "get balance")
 		return
 	}
 
 	if balance == "0" {
 		if err = bot.sendText(chatID, NoFunds, nil); err != nil {
 			log.Error(err)
-			bot.sendErr(err, "not enough message")
 			return
 		}
 		return
 	}
 
 	user.StageData.Stage = model.AddressWait
-
-	userCache := &model.UserCache{
-		UserID: user.ID,
-		Data:   user,
-	}
-
-	if err = bot.redis.SetUserCache(ctx, userCache); err != nil {
+	if err = bot.redis.SetUserCache(ctx, user); err != nil {
 		log.Error(err)
-		bot.sendErr(err, "set wallet waiting stage")
 		return
 	}
 
 	if err = bot.sendText(chatID, AskWallet, nil); err != nil {
 		log.Error(err)
-		bot.sendErr(err, "ask amount to send")
 	}
 
 	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, "")
 	_, err = bot.api.Request(cb)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "")
 	}
 }
 
@@ -168,20 +308,17 @@ func (bot *Bot) inlineBalance(update tgBotAPI.Update, user *model.User) {
 	balance, err := bot.ton.GetWalletBalance(address)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "get wallet balance")
 		return
 	}
 
-	if err = bot.sendText(chatID, fmt.Sprintf(Balance, balance), mainInlineKeyboardCheckBalance); err != nil {
+	if err = bot.sendText(chatID, fmt.Sprintf(Balance, balance), inlineBalanceKeyboard); err != nil {
 		log.Error(err)
-		bot.sendErr(err, "send wallet balance")
 	}
 
 	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, "")
 	_, err = bot.api.Request(cb)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "")
 	}
 }
 
@@ -189,84 +326,62 @@ func (bot *Bot) inlineBalanceUpdate(update tgBotAPI.Update, user *model.User) {
 	balance, err := bot.ton.GetWalletBalance(user.Wallet.Address)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "get wallet balance")
 		return
 	}
 
 	newText := fmt.Sprintf(Balance, balance)
-
-	notification := "Balance is up to date"
+	notification := BalanceUpToDate
 
 	if newText != update.CallbackQuery.Message.Text {
 		msg := tgBotAPI.EditMessageTextConfig{
 			BaseEdit: tgBotAPI.BaseEdit{
-				ChatID:          user.ID,
-				ChannelUsername: "",
-				MessageID:       update.CallbackQuery.Message.MessageID,
-				InlineMessageID: "",
-				ReplyMarkup:     &mainInlineKeyboardCheckBalance,
+				ChatID:      user.ID,
+				MessageID:   update.CallbackQuery.Message.MessageID,
+				ReplyMarkup: &inlineBalanceKeyboard,
 			},
-			Text:                  newText,
-			ParseMode:             "HTML",
-			Entities:              nil,
-			DisableWebPagePreview: false,
+			Text:      newText,
+			ParseMode: "HTML",
 		}
 
 		_, err = bot.api.Request(msg)
 		if err != nil {
 			log.Error(err)
-			bot.sendErr(err, "")
 			return
 		}
 
-		notification = "Balance updated"
+		notification = BalanceUpdated
 	}
 
 	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, notification)
 	_, err = bot.api.Request(cb)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "")
 	}
-
 }
 
 func (bot *Bot) inlineCancel(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	chatID := update.CallbackQuery.Message.Chat.ID
 	messageID := update.CallbackQuery.Message.MessageID
 	text := update.CallbackQuery.Message.Text
-	//userID := strconv.FormatInt(update.CallbackQuery.Message.Chat.ID, 10)
 
-	//err := bot.redis.SetStage(ctx, userID, storage.StageUnset)
-	//if err != nil {
-	//	bot.err(err, "set \"unset\" stage")
-	//	return
-	//}
-
-	newText := text + "\n<b>✅ Canceled</b>"
+	newText := text + fmt.Sprintf("\n<b>%s</b>", Canceled)
 
 	msg := tgBotAPI.EditMessageTextConfig{
 		BaseEdit: tgBotAPI.BaseEdit{
-			ChatID:          chatID,
-			ChannelUsername: "",
-			MessageID:       messageID,
-			InlineMessageID: "",
-			ReplyMarkup:     nil,
+			ChatID:    chatID,
+			MessageID: messageID,
 		},
-		Text:                  newText,
-		ParseMode:             "HTML",
-		Entities:              nil,
-		DisableWebPagePreview: false,
+		Text:      newText,
+		ParseMode: "HTML",
 	}
 
-	user.StageData.Stage = model.ZeroStage
-
-	userCache := &model.UserCache{
-		UserID: user.ID,
-		Data:   user,
+	user.StageData = &model.StageData{
+		Stage:         model.ZeroStage,
+		AddressToSend: "",
+		AmountToSend:  "",
 	}
 
-	err := bot.redis.SetUserCache(ctx, userCache)
+	err := bot.redis.SetUserCache(ctx, user)
 	if err != nil {
 		log.Error(err)
 		return
@@ -275,175 +390,11 @@ func (bot *Bot) inlineCancel(ctx context.Context, update tgBotAPI.Update, user *
 	_, err = bot.api.Request(msg)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "")
 	}
 
 	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, "")
 	_, err = bot.api.Request(cb)
 	if err != nil {
 		log.Error(err)
-		bot.sendErr(err, "")
 	}
-}
-
-func (bot *Bot) cmdStart(update tgBotAPI.Update, user *model.User, isExist bool) {
-	message := update.Message
-	wallet := user.Wallet.Address
-
-	qr, err := qrcode.Encode(wallet, qrcode.Medium, 512)
-	if err != nil {
-		log.Error(err)
-		bot.sendErr(err, "generate qr")
-		return
-	}
-
-	caption := ""
-	switch isExist {
-	case true:
-		caption = fmt.Sprintf(WelcomeExistedUser, message.From.FirstName, wallet)
-	case false:
-		caption = fmt.Sprintf(WelcomeNewUser, message.From.FirstName, wallet)
-	}
-
-	if err := bot.sendPhoto(message.Chat.ID, qr, caption, mainInlineKeyboard); err != nil {
-		bot.sendErr(err, "send wallet address and qr")
-	}
-}
-
-func (bot *Bot) validateSendingAmount(ctx context.Context, update tgBotAPI.Update, user *model.User) {
-	text := update.Message.Text
-	chatID := update.Message.Chat.ID
-	wallet := user.Wallet.Address
-
-	amount := strings.ReplaceAll(text, " ", "")
-	amount = strings.ReplaceAll(amount, ",", ".")
-	rw := "xxx-xxx-xxx-xxx"
-
-	amountInCoins, err := tlb.FromTON(amount)
-	if err != nil {
-		if err := bot.sendText(chatID, InvalidAmount, struct{}{}); err != nil {
-			bot.sendErr(err, "send invalid amount")
-			return
-		}
-		bot.sendErr(err, "convert string to coins")
-		return
-	}
-
-	balance, err := bot.ton.GetWalletBalance(wallet)
-	if err != nil {
-		bot.sendErr(err, "get wallet balance")
-		return
-	}
-
-	balanceInCoins, err := tlb.FromTON(balance)
-	if err != nil {
-		bot.sendErr(err, "convert string to coins")
-		return
-	}
-
-	if balanceInCoins.NanoTON().Cmp(amountInCoins.NanoTON()) < 0 {
-		txt := fmt.Sprintf(NotEnoughFunds, balance)
-		if err := bot.sendText(chatID, txt, struct{}{}); err != nil {
-			bot.sendErr(err, "send not enough amount")
-			return
-		}
-		return
-	}
-
-	//err = bot.redis.SetStage(ctx, userID, storage.StageWalletWaiting)
-	//if err != nil {
-	//	bot.err(err, "set wallet waiting stage")
-	//	return
-	//}
-
-	txt := fmt.Sprintf(SendingConfirmation, rw)
-	if err := bot.sendText(chatID, txt, confirmInlineKeyboard); err != nil {
-		bot.sendErr(err, "send validate fail")
-		return
-	}
-}
-
-func (bot *Bot) parseSendingQR(ctx context.Context, update tgBotAPI.Update, user *model.User) {
-	message := update.Message
-
-	index, size := 0, 0
-	for i, v := range message.Photo {
-		if v.FileSize > size {
-			index = i
-		}
-	}
-
-	fileURL, err := bot.api.GetFileDirectURL(message.Photo[index].FileID)
-	if err != nil {
-		bot.sendErr(err, "get file direct url")
-		return
-	}
-
-	resp, err := http.Get(fileURL)
-	if err != nil {
-		bot.sendErr(err, "get data from url")
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bot.sendErr(errors.New("bad status: "+resp.Status), "http status")
-		return
-	}
-
-	img, err := jpeg.Decode(resp.Body)
-	if err != nil {
-		bot.sendErr(err, "decode jpeg")
-		return
-	}
-
-	// prepare BinaryBitmap
-	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
-	if err != nil {
-		bot.sendErr(err, "prepare binary bitmap")
-		return
-	}
-
-	// decode image
-	qrReader := qrScan.NewQRCodeReader()
-	result, err := qrReader.Decode(bmp, nil)
-	if err != nil {
-		bot.sendErr(err, "decode qr")
-		if err := bot.sendText(message.Chat.ID, InvalidQR, struct{}{}); err != nil {
-			bot.sendErr(err, "send decode fail")
-			return
-		}
-		return
-	}
-
-	receiverAddress := result.String()
-
-	err = bot.ton.ValidateWallet(receiverAddress)
-	if err != nil {
-		bot.sendErr(err, "validate receiver wallet")
-		if err := bot.sendText(message.Chat.ID, InvalidWallet, struct{}{}); err != nil {
-			bot.sendErr(err, "send validate fail")
-			return
-		}
-		return
-	}
-
-	// set user stage in cache
-	user.StageData.Stage = model.AmountWait
-	userCache := &model.UserCache{
-		UserID: user.ID,
-		Data:   user,
-	}
-	err = bot.redis.SetUserCache(ctx, userCache)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	if err := bot.sendText(message.Chat.ID, AskAmount, struct{}{}); err != nil {
-		bot.sendErr(err, "ask wallet")
-		log.Error(err)
-		return
-	}
-
 }

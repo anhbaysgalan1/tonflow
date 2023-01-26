@@ -9,45 +9,23 @@ import (
 )
 
 func (bot *Bot) handleUpdate(ctx context.Context, update tgBotAPI.Update) {
+	user, isExisted, err := bot.getTonflowUser(ctx, update.SentFrom())
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.AnyPrint(user), pkg.AnyPrint(isExisted))
+
 	switch {
-	case update.CallbackQuery != nil:
-		bot.handleCallbackQuery(ctx, update)
 	case update.Message != nil:
-		bot.handleMessage(ctx, update)
+		bot.handleMessage(ctx, update, user, isExisted)
+	case update.CallbackQuery != nil:
+		bot.handleCallback(ctx, update, user)
 	}
 }
 
-func (bot *Bot) handleCallbackQuery(ctx context.Context, update tgBotAPI.Update) {
-	user, isExisted, err := bot.getTonflowUser(ctx, update.SentFrom())
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.AnyPrint(user), pkg.AnyPrint(isExisted))
-
-	switch update.CallbackData() {
-	case "receive":
-		bot.inlineReceiveCoins(user)
-	case "send":
-		bot.inlineSendCoins(ctx, update, user)
-	case "balance":
-		bot.inlineBalance(update, user)
-	case "update balance":
-		bot.inlineBalanceUpdate(update, user)
-	case "cancel":
-		bot.inlineCancel(ctx, update, user)
-		bot.inlineBalance(update, user)
-	}
-}
-
-func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update) {
-	user, isExisted, err := bot.getTonflowUser(ctx, update.SentFrom())
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.AnyPrint(user), pkg.AnyPrint(isExisted))
-
+func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update, user *model.User, isExisted bool) {
 	switch {
 	case update.Message.IsCommand():
 		switch update.Message.Command() {
@@ -61,5 +39,23 @@ func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update) {
 		if user.StageData.Stage == model.AmountWait && update.Message.Text != "" {
 			bot.validateSendingAmount(ctx, update, user)
 		}
+		// дефолтное сообщение не удовлетворяеющее ни однму стейджу
+		// ...
+	}
+}
+
+func (bot *Bot) handleCallback(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	switch update.CallbackData() {
+	case "receive":
+		bot.inlineReceiveCoins(update, user)
+	case "send":
+		bot.inlineSendCoins(ctx, update, user)
+	case "balance":
+		bot.inlineBalance(update, user)
+	case "update balance":
+		bot.inlineBalanceUpdate(update, user)
+	case "cancel":
+		bot.inlineCancel(ctx, update, user)
+		bot.inlineBalance(update, user)
 	}
 }

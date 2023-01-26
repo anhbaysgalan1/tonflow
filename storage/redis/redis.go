@@ -35,10 +35,10 @@ func NewRedisClient(URI string) (storage.Cache, error) {
 	return &DB{redisClient}, nil
 }
 
-func (db *DB) SetUserCache(ctx context.Context, cache *model.UserCache) error {
-	id := strconv.FormatInt(cache.UserID, 10)
+func (db *DB) SetUserCache(ctx context.Context, user *model.User) error {
+	id := strconv.FormatInt(user.ID, 10)
 
-	data, err := json.Marshal(cache.Data)
+	data, err := json.Marshal(user)
 	if err != nil {
 		return err
 	}
