@@ -8,7 +8,7 @@ const (
 	ReceiveInstruction  = "Show QR code to receive TON or use wallet address"
 	AskAmount           = "💰 How many TON to send?"
 	AskWallet           = "📲 Enter the recipient's wallet address or take a photo of QR code"
-	SendingConfirmation = "✋ Confirm sending?\nTo: <code>%s</code>\nAmount: %s TON"
+	SendingConfirmation = "✋ Confirm sending?\nTo wallet address: <code>%s</code>\nAmount: %s TON"
 	NoFunds             = "🤷️ You have no TON"
 	NotEnoughFunds      = "🤷️ Not enough funds on your balance, you just have %s TON"
 	InvalidAmount       = "☝️ Only digits and one dot are allowed, try again"

@@ -111,65 +111,68 @@ func (bot *Bot) cmdStart(update tgBotAPI.Update, user *model.User, isExisted boo
 	}
 }
 
-func (bot *Bot) parseSendingQR(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+func (bot *Bot) parseSendingAddress(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	chatID := update.Message.Chat.ID
 	photos := update.Message.Photo
+	addr := update.Message.Text
 
-	index, size := 0, 0
-	for i, v := range photos {
-		if v.FileSize > size {
-			index = i
+	if len(photos) != 0 {
+		index, size := 0, 0
+		for i, v := range photos {
+			if v.FileSize > size {
+				index = i
+			}
 		}
-	}
 
-	fileURL, err := bot.api.GetFileDirectURL(photos[index].FileID)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	resp, err := http.Get(fileURL)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Error(err)
-		return
-	}
-
-	img, err := jpeg.Decode(resp.Body)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	// prepare BinaryBitmap
-	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-
-	// decode image
-	qrReader := qrScan.NewQRCodeReader()
-	result, err := qrReader.Decode(bmp, nil)
-	if err != nil {
-		log.Warnf("failed to decode qr %v: %v", fileURL, err)
-		if err = bot.sendText(chatID, InvalidQR, nil); err != nil {
+		fileURL, err := bot.api.GetFileDirectURL(photos[index].FileID)
+		if err != nil {
 			log.Error(err)
 			return
 		}
-		return
+
+		resp, err := http.Get(fileURL)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			log.Error(err)
+			return
+		}
+
+		img, err := jpeg.Decode(resp.Body)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		// prepare BinaryBitmap
+		bmp, err := gozxing.NewBinaryBitmapFromImage(img)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		// decode image
+		qrReader := qrScan.NewQRCodeReader()
+		result, err := qrReader.Decode(bmp, nil)
+		if err != nil {
+			log.Warnf("failed to decode qr %v: %v", fileURL, err)
+			if err = bot.sendText(chatID, InvalidQR, nil); err != nil {
+				log.Error(err)
+				return
+			}
+			return
+		}
+
+		addr = result.String()
 	}
 
-	receiverAddress := result.String()
-
-	err = bot.ton.ValidateWallet(receiverAddress)
+	err := bot.ton.ValidateWallet(addr)
 	if err != nil {
-		log.Warnf("failed to validate address %v: %v", receiverAddress, err)
+		log.Warnf("failed to validate address %v: %v", addr, err)
 		if err = bot.sendText(chatID, InvalidWallet, nil); err != nil {
 			log.Error(err)
 			return
@@ -179,7 +182,7 @@ func (bot *Bot) parseSendingQR(ctx context.Context, update tgBotAPI.Update, user
 
 	// set user stage in cache
 	user.StageData.Stage = model.AmountWait
-	user.StageData.AddressToSend = receiverAddress
+	user.StageData.AddressToSend = addr
 	err = bot.redis.SetUserCache(ctx, user)
 	if err != nil {
 		log.Error(err)
@@ -189,7 +192,6 @@ func (bot *Bot) parseSendingQR(ctx context.Context, update tgBotAPI.Update, user
 	if err = bot.sendText(chatID, AskAmount, nil); err != nil {
 		log.Error(err)
 	}
-
 }
 
 func (bot *Bot) validateSendingAmount(ctx context.Context, update tgBotAPI.Update, user *model.User) {

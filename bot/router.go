@@ -33,14 +33,18 @@ func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update, user 
 			bot.cmdStart(update, user, isExisted)
 		}
 	default:
-		if user.StageData.Stage == model.AddressWait && len(update.Message.Photo) != 0 {
-			bot.parseSendingQR(ctx, update, user)
-		}
-		if user.StageData.Stage == model.AmountWait && update.Message.Text != "" {
+		switch {
+		case user.StageData.Stage == model.AddressWait:
+			bot.parseSendingAddress(ctx, update, user)
+		case user.StageData.Stage == model.AmountWait:
 			bot.validateSendingAmount(ctx, update, user)
+		default:
+			err := bot.sendText(update.Message.Chat.ID, "Nothing to do...", nil)
+			if err != nil {
+				log.Error(err)
+				return
+			}
 		}
-		// дефолтное сообщение не удовлетворяеющее ни однму стейджу
-		// ...
 	}
 }
 
