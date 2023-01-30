@@ -10,14 +10,15 @@ import (
 )
 
 type Bot struct {
-	BotName   string
-	adminID   int64
-	api       *tgBotAPI.BotAPI
-	ton       *tonclient.TonClient
-	redis     storage.Cache
-	storage   storage.Storage
-	cryptoKey string
-	stopCh    chan struct{}
+	BotName         string
+	adminID         int64
+	api             *tgBotAPI.BotAPI
+	ton             *tonclient.TonClient
+	redis           storage.Cache
+	storage         storage.Storage
+	key             string
+	blockchainTxFee string
+	stopCh          chan struct{}
 }
 
 type logger struct {
@@ -38,7 +39,8 @@ func NewBot(
 	redisClient storage.Cache,
 	storage storage.Storage,
 	debug bool,
-	cryptoKey string,
+	blockchainTxFee string,
+	key string,
 ) (*Bot, error) {
 	botAPI, err := tgBotAPI.NewBotAPI(token)
 	if err != nil {
@@ -53,14 +55,15 @@ func NewBot(
 	}
 
 	return &Bot{
-		BotName:   botAPI.Self.UserName,
-		adminID:   admin,
-		api:       botAPI,
-		ton:       ton,
-		redis:     redisClient,
-		storage:   storage,
-		cryptoKey: cryptoKey,
-		stopCh:    make(chan struct{}),
+		BotName:         botAPI.Self.UserName,
+		adminID:         admin,
+		api:             botAPI,
+		ton:             ton,
+		redis:           redisClient,
+		storage:         storage,
+		blockchainTxFee: blockchainTxFee,
+		key:             key,
+		stopCh:          make(chan struct{}),
 	}, nil
 
 }

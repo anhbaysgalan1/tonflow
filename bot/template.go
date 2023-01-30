@@ -22,7 +22,7 @@ const (
 
 	AskAmount      = "💰 How many TON to send?"
 	NoFunds        = "🤷️ You have no TON"
-	NotEnoughFunds = "🤷️ Not enough funds on your balance, you just have %s TON"
+	NotEnoughFunds = "🤷️ Not enough funds on your balance, you just have %s TON. Blockchain fee of ~%s TON is charged for each transfer."
 	InvalidAmount  = "☝️ Only digits and one dot are allowed, try again"
 
 	AskWallet     = "📲 Enter the recipient's wallet address or take a photo of QR code"
@@ -32,6 +32,6 @@ const (
 	AskComment = "💬 Ok, send your comment"
 	Comment    = "\n\nComment: %s"
 
-	SendingConfirmation = "✋ Confirm sending?\n\nTo wallet address: <code>%s</code>\n\nAmount: %s TON"
-	Canceled            = "\n\n✅ Canceled"
+	SendingConfirmation = "✋ Confirm sending?\n\nTo wallet address: <code>%s</code>\n\nAmount: %s TON\nFee: ~%s TON"
+	Canceled            = "\n\n✔ Canceled"
 )

@@ -44,6 +44,7 @@ func main() {
 		redisClient,
 		storageClient,
 		config.Config.Debug,
+		config.Config.BlockchainTxFee,
 		config.Config.Key,
 	)
 	if err != nil {

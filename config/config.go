@@ -15,26 +15,27 @@ const (
 )
 
 var Config = struct {
-	Production   bool   `env:"PRODUCTION" envDefault:"false"`
-	Debug        bool   `env:"DEBUG" envDefault:"true"`
-	AppName      string `env:"APP_NAME" envDefault:"Tonflow"`
-	BotToken     string
-	ProdBotToken string `env:"PROD_BOT_TOKEN,required"`
-	DevBotToken  string `env:"DEV_BOT_TOKEN,required"`
-	BotAdminID   int64  `env:"BOT_ADMIN_ID,required"`
-	LiteServers  string
-	Key          string `env:"KEY,required"`
-	RedisHost    string `env:"REDIS_HOST,required"`
-	RedisPort    string `env:"REDIS_PORT,required"`
-	RedisURI     string
-	PgHost       string `env:"PG_HOST,required"`
-	PgPort       string `env:"PG_PORT,required"`
-	PgUser       string `env:"PG_USER,required"`
-	PgPassword   string `env:"PG_PASSWORD,required"`
-	PgName       string `env:"PG_NAME,required"`
-	PgSSL        string `env:"PG_SSL,required"`
-	PgURI        string
-	PgMigration  bool `env:"PG_MIGRATION,required"`
+	Production      bool   `env:"PRODUCTION" envDefault:"false"`
+	Debug           bool   `env:"DEBUG" envDefault:"true"`
+	AppName         string `env:"APP_NAME" envDefault:"Tonflow"`
+	BotToken        string
+	ProdBotToken    string `env:"PROD_BOT_TOKEN,required"`
+	DevBotToken     string `env:"DEV_BOT_TOKEN,required"`
+	BotAdminID      int64  `env:"BOT_ADMIN_ID,required"`
+	LiteServers     string
+	BlockchainTxFee string `env:"BLOCKCHAIN_TX_FEE,required"`
+	Key             string `env:"KEY,required"`
+	RedisHost       string `env:"REDIS_HOST,required"`
+	RedisPort       string `env:"REDIS_PORT,required"`
+	RedisURI        string
+	PgHost          string `env:"PG_HOST,required"`
+	PgPort          string `env:"PG_PORT,required"`
+	PgUser          string `env:"PG_USER,required"`
+	PgPassword      string `env:"PG_PASSWORD,required"`
+	PgName          string `env:"PG_NAME,required"`
+	PgSSL           string `env:"PG_SSL,required"`
+	PgURI           string
+	PgMigration     bool `env:"PG_MIGRATION,required"`
 }{
 	LiteServers: testnetLiteservers,
 }
