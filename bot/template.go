@@ -13,6 +13,7 @@ const (
 	BalanceButton       = "Balance"
 	UpdateBalanceButton = "Update balance"
 	SendAllButton       = "Send all"
+	SendMaxButton       = "Send maximum"
 	AddCommentButton    = "Add comment"
 	ConfirmButton       = "Confirm"
 	CancelButton        = "Cancel"
@@ -20,18 +21,18 @@ const (
 	BalanceUpToDate = "Balance is up to date"
 	BalanceUpdated  = "Balance updated"
 
-	AskAmount      = "💰 How many TON to send?"
+	AskAmount      = "How many TON to send? Enter the amount which you want to send or press Send all."
 	NoFunds        = "🤷️ You have no TON"
-	NotEnoughFunds = "🤷️ Not enough funds on your balance, you just have %s TON. Blockchain fee of ~%s TON is charged for each transfer."
+	NotEnoughFunds = "🤷️ Not enough funds on your balance, you just have %s TON. Also blockchain fee of ~%s TON is charged for each transfer."
 	InvalidAmount  = "☝️ Only digits and one dot are allowed, try again"
 
-	AskWallet     = "📲 Enter the recipient's wallet address or take a photo of QR code"
+	AskWallet     = "Enter the recipient's wallet address or take a photo of QR code"
 	InvalidQR     = "🤷 Unable to recognize QR code, try another photo or enter wallet address"
 	InvalidWallet = "🤷 There is no wallet with this address"
 
-	AskComment = "💬 Ok, send your comment"
+	AskComment = "Ok, send your comment"
 	Comment    = "\n\nComment: %s"
 
-	SendingConfirmation = "✋ Confirm sending?\n\nTo wallet address: <code>%s</code>\n\nAmount: %s TON\nFee: ~%s TON"
+	SendingConfirmation = "Confirm sending?\n\nTo wallet address: <code>%s</code>\n\nAmount: %s TON\nFee: ~%s TON"
 	Canceled            = "\n\n✔ Canceled"
 )

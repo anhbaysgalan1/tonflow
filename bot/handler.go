@@ -190,7 +190,7 @@ func (bot *Bot) acceptSendingAddress(ctx context.Context, update tgBotAPI.Update
 		return
 	}
 
-	if err = bot.sendText(chatID, AskAmount, inlineSenAllKeyboard); err != nil {
+	if err = bot.sendText(chatID, AskAmount, inlineSendAllKeyboard); err != nil {
 		log.Error(err)
 	}
 }
@@ -234,7 +234,7 @@ func (bot *Bot) acceptSendingAmount(ctx context.Context, update tgBotAPI.Update,
 
 	if balanceInCoins.NanoTON().Cmp(amountWithFees) == -1 {
 		txt := fmt.Sprintf(NotEnoughFunds, balance, bot.blockchainTxFee)
-		if err = bot.sendText(chatID, txt, nil); err != nil {
+		if err = bot.sendText(chatID, txt, inlineSendMaxKeyboard); err != nil {
 			return
 		}
 		return
