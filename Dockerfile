@@ -1,19 +1,11 @@
-# syntax=docker/dockerfile:1
-FROM golang:alpine
-
-# move to working directory /app
-WORKDIR /app
-
-# copy, download and verify dependency using go mod
+FROM golang:alpine AS builder
+WORKDIR /build
 COPY go.mod .
 COPY go.sum .
 RUN go mod download && go mod verify
-
-# copy the code into the container
 COPY . .
+RUN go build -v -o /tmp/tonflow cmd/main.go
 
-# compile application
-RUN go build -v -o cmd/ cmd/main.go
-
-EXPOSE 8080
-CMD [ "cmd/main" ]
+FROM alpine:latest AS tonflow
+COPY --from=builder /tmp/tonflow /app/tonflow
+CMD ["/app/tonflow"]

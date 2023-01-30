@@ -1,3 +1,13 @@
-local:
-	docker-compose --env-file .env.local -f docker-compose.local.yml up -d --build
-	go run cmd/main.go
+VERSION := latest
+build:
+	docker build -t tonflow:$(VERSION) --target tonflow .
+up:
+	docker-compose up -d
+down:
+	docker-compose down
+log:
+	docker logs --follow tonflow
+rebuild:
+	make build
+	make up
+	make log

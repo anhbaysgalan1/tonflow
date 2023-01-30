@@ -1,9 +1,43 @@
 version: "3.9"
+
+volumes:
+  pg:
+  redis:
+
 services:
-  app:
-    container_name: app
+
+  postgres:
+    image: postgres:alpine
+    container_name: postgres
+    ports:
+      - "${PG_PORT}:${PG_PORT}"
     restart: always
+    env_file:
+      - .env
     environment:
-      APP_ENV: "production"
-    build: ./
-    command: cmd/main
+      POSTGRES_DB: "${PG_NAME}"
+      POSTGRES_USER: "${PG_USER}"
+      POSTGRES_PASSWORD: "${PG_PASSWORD}"
+    volumes:
+      - ./deploy/db/01_init.up.sql:/docker-entrypoint-initdb.d/init.sql
+      - pg:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - redis:/data
+
+  tonflow:
+    image: tonflow
+    container_name: tonflow
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    env_file:
+      - .env
