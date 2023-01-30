@@ -13,6 +13,7 @@ import (
 	"github.com/skip2/go-qrcode"
 	"github.com/xssnick/tonutils-go/tlb"
 	"image/jpeg"
+	"math/big"
 	"net/http"
 	"strings"
 	"tonflow/model"
@@ -189,7 +190,7 @@ func (bot *Bot) acceptSendingAddress(ctx context.Context, update tgBotAPI.Update
 		return
 	}
 
-	if err = bot.sendText(chatID, AskAmount, nil); err != nil {
+	if err = bot.sendText(chatID, AskAmount, inlineSenAllKeyboard); err != nil {
 		log.Error(err)
 	}
 }
@@ -197,22 +198,12 @@ func (bot *Bot) acceptSendingAddress(ctx context.Context, update tgBotAPI.Update
 func (bot *Bot) acceptSendingAmount(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	text := update.Message.Text
 	chatID := update.Message.Chat.ID
-	wallet := user.Wallet.Address
+	address := user.Wallet.Address
 
 	amount := strings.ReplaceAll(text, " ", "")
 	amount = strings.ReplaceAll(amount, ",", ".")
 
-	amountInCoins, err := tlb.FromTON(amount)
-	if err != nil {
-		log.Warnf("failed to convert %v to coins: %v", amountInCoins, err)
-		if err = bot.sendText(chatID, InvalidAmount, struct{}{}); err != nil {
-			log.Error(err)
-			return
-		}
-		return
-	}
-
-	balance, err := bot.ton.GetWalletBalance(wallet)
+	balance, err := bot.ton.GetWalletBalance(address)
 	if err != nil {
 		log.Error(err)
 		return
@@ -221,6 +212,16 @@ func (bot *Bot) acceptSendingAmount(ctx context.Context, update tgBotAPI.Update,
 	balanceInCoins, err := tlb.FromTON(balance)
 	if err != nil {
 		log.Error()
+		return
+	}
+
+	amountInCoins, err := tlb.FromTON(amount)
+	if err != nil {
+		log.Warnf("failed to convert %v to coins: %v", amountInCoins, err)
+		if err = bot.sendText(chatID, InvalidAmount, struct{}{}); err != nil {
+			log.Error(err)
+			return
+		}
 		return
 	}
 
@@ -419,6 +420,45 @@ func (bot *Bot) inlineCancel(ctx context.Context, update tgBotAPI.Update, user *
 	if err != nil {
 		log.Error(err)
 	}
+}
+
+func (bot *Bot) inlineSendAll(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	chatID := update.CallbackQuery.Message.Chat.ID
+	address := user.Wallet.Address
+
+	balance, err := bot.ton.GetWalletBalance(address)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	balanceInCoins, err := tlb.FromTON(balance)
+	if err != nil {
+		log.Error()
+		return
+	}
+
+	if balanceInCoins.NanoTON().Cmp(big.NewInt(0)) < 0 {
+		txt := fmt.Sprintf(NotEnoughFunds, balance)
+		if err = bot.sendText(chatID, txt, nil); err != nil {
+			return
+		}
+		return
+	}
+
+	user.StageData.Stage = model.ConfirmationWait
+	user.StageData.AmountToSend = balance
+	err = bot.redis.SetUserCache(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	txt := fmt.Sprintf(SendingConfirmation, user.StageData.AddressToSend, balance)
+	if err = bot.sendText(chatID, txt, inlineConfirmKeyboard); err != nil {
+		log.Error(err)
+	}
+
 }
 
 func (bot *Bot) inlineAddComment(ctx context.Context, update tgBotAPI.Update, user *model.User) {

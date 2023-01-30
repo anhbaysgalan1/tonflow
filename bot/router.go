@@ -68,6 +68,8 @@ func (bot *Bot) handleCallback(ctx context.Context, update tgBotAPI.Update, user
 		bot.inlineBalance(update, user)
 	case "add comment":
 		bot.inlineAddComment(ctx, update, user)
+	case "send all":
+		bot.inlineSendAll(ctx, update, user)
 	default:
 		log.Error(fmt.Errorf("need handle this case"))
 	}

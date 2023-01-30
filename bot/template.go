@@ -12,6 +12,7 @@ const (
 	SendButton          = "Send"
 	BalanceButton       = "Balance"
 	UpdateBalanceButton = "Update balance"
+	SendAllButton       = "Send all"
 	AddCommentButton    = "Add comment"
 	ConfirmButton       = "Confirm"
 	CancelButton        = "Cancel"

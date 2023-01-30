@@ -35,6 +35,14 @@ var (
 				"update balance"),
 		))
 
+	inlineSenAllKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
+		tgBotAPI.NewInlineKeyboardRow(
+			tgBotAPI.NewInlineKeyboardButtonData(
+				SendAllButton,
+				"send all"),
+		),
+	)
+
 	inlineConfirmKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
