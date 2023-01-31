@@ -71,9 +71,8 @@ func (bot *Bot) handleCallback(ctx context.Context, update tgBotAPI.Update, user
 	case "send all":
 		bot.inlineSendAll(ctx, update, user)
 	case "confirm":
-		if user.StageData.Stage == model.ConfirmationWait {
-			bot.confirmSending(ctx, user)
-		}
+		bot.confirmSending(ctx, update, user)
+		bot.inlineBalance(ctx, update, user)
 	default:
 		log.Error(fmt.Errorf("need handle this case"))
 	}

@@ -34,5 +34,7 @@ const (
 	Comment    = "\n\nComment: %s"
 
 	SendingConfirmation = "Confirm sending?\n\nTo wallet address: <code>%s</code>\n\nAmount: %s TON\nFee: ~%s TON"
+	Confirmed           = "\n\n⏳ Sending coins..."
+	Sent                = "\n\n✅ Successfully sent"
 	Canceled            = "\n\n✔ Canceled"
 )

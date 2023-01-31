@@ -274,11 +274,60 @@ func (bot *Bot) acceptComment(ctx context.Context, update tgBotAPI.Update, user 
 	}
 }
 
-func (bot *Bot) confirmSending(ctx context.Context, user *model.User) {
-	err := bot.ton.Send(ctx, user)
+func (bot *Bot) confirmSending(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	chatID := update.CallbackQuery.Message.Chat.ID
+	messageID := update.CallbackQuery.Message.MessageID
+	text := update.CallbackQuery.Message.Text
+
+	newText := strings.ReplaceAll(text, "address: ", "address: <code>")
+	newText = strings.ReplaceAll(newText, "\n\nAmount", "</code>\n\nAmount")
+	confirmed := newText + Confirmed
+
+	msg := tgBotAPI.EditMessageTextConfig{
+		BaseEdit: tgBotAPI.BaseEdit{
+			ChatID:    chatID,
+			MessageID: messageID,
+		},
+		Text:      confirmed,
+		ParseMode: "HTML",
+	}
+
+	_, err := bot.api.Request(msg)
 	if err != nil {
 		log.Error(err)
 		return
+	}
+
+	err = bot.ton.Send(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	msg.Text = newText + Sent
+
+	_, err = bot.api.Request(msg)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	user.StageData = &model.StageData{
+		Stage:         model.ZeroStage,
+		AddressToSend: "",
+		AmountToSend:  "",
+	}
+
+	err = bot.redis.SetUserCache(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, "")
+	_, err = bot.api.Request(cb)
+	if err != nil {
+		log.Error(err)
 	}
 }
 
