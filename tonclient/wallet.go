@@ -3,6 +3,7 @@ package tonclient
 import (
 	"context"
 	"github.com/xssnick/tonutils-go/address"
+	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton/wallet"
 	"strings"
 	"tonflow/model"
@@ -32,8 +33,8 @@ func (ton *TonClient) ValidateWallet(addr string) error {
 	return nil
 }
 
-func (ton *TonClient) GetWalletBalance(addr string) (string, error) {
-	ctx := ton.liteClient.StickyContext(context.Background())
+func (ton *TonClient) GetWalletBalance(ctx context.Context, addr string) (string, error) {
+	ctx = ton.liteClient.StickyContext(ctx)
 
 	wltAddr, err := address.ParseAddr(addr)
 	if err != nil {
@@ -55,4 +56,23 @@ func (ton *TonClient) GetWalletBalance(addr string) (string, error) {
 	}
 
 	return wlt.State.Balance.TON(), nil
+}
+
+func (ton *TonClient) Send(ctx context.Context, user *model.User) error {
+	words := strings.Split(user.Wallet.Seed, " ")
+	w, err := wallet.FromSeed(ton.tonAPI, words, user.Wallet.Version)
+	if err != nil {
+		return err
+	}
+
+	addr := address.MustParseAddr(user.StageData.AddressToSend)
+	amount := tlb.MustFromTON(user.StageData.AmountToSend)
+	comment := user.StageData.Comment
+
+	err = w.TransferNoBounce(ctx, addr, amount, comment, true)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
