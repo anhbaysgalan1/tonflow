@@ -200,7 +200,7 @@ func (bot *Bot) acceptSendingAmount(ctx context.Context, update tgBotAPI.Update,
 	chatID := update.Message.Chat.ID
 	address := user.Wallet.Address
 
-	balance, err := bot.ton.GetWalletBalance(address)
+	balance, err := bot.ton.GetWalletBalance(ctx, address)
 	if err != nil {
 		log.Error(err)
 		return
@@ -261,7 +261,7 @@ func (bot *Bot) acceptComment(ctx context.Context, update tgBotAPI.Update, user 
 	comment := update.Message.Text
 
 	user.StageData.Stage = model.ConfirmationWait
-	user.StageData.Comment = amount
+	user.StageData.Comment = comment
 	err := bot.redis.SetUserCache(ctx, user)
 	if err != nil {
 		log.Error(err)
@@ -271,6 +271,14 @@ func (bot *Bot) acceptComment(ctx context.Context, update tgBotAPI.Update, user 
 	txt := fmt.Sprintf(SendingConfirmation, addr, amount, bot.blockchainTxFee) + fmt.Sprintf(Comment, comment)
 	if err = bot.sendText(chatID, txt, inlineConfirmWithCommentKeyboard); err != nil {
 		log.Error(err)
+	}
+}
+
+func (bot *Bot) confirmSending(ctx context.Context, user *model.User) {
+	err := bot.ton.Send(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
 	}
 }
 
@@ -300,7 +308,7 @@ func (bot *Bot) inlineSendCoins(ctx context.Context, update tgBotAPI.Update, use
 	address := user.Wallet.Address
 	chatID := user.ID
 
-	balance, err := bot.ton.GetWalletBalance(address)
+	balance, err := bot.ton.GetWalletBalance(ctx, address)
 	if err != nil {
 		log.Error(err)
 		return
@@ -331,11 +339,11 @@ func (bot *Bot) inlineSendCoins(ctx context.Context, update tgBotAPI.Update, use
 	}
 }
 
-func (bot *Bot) inlineBalance(update tgBotAPI.Update, user *model.User) {
+func (bot *Bot) inlineBalance(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	address := user.Wallet.Address
 	chatID := user.ID
 
-	balance, err := bot.ton.GetWalletBalance(address)
+	balance, err := bot.ton.GetWalletBalance(ctx, address)
 	if err != nil {
 		log.Error(err)
 		return
@@ -352,8 +360,8 @@ func (bot *Bot) inlineBalance(update tgBotAPI.Update, user *model.User) {
 	}
 }
 
-func (bot *Bot) inlineBalanceUpdate(update tgBotAPI.Update, user *model.User) {
-	balance, err := bot.ton.GetWalletBalance(user.Wallet.Address)
+func (bot *Bot) inlineBalanceUpdate(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	balance, err := bot.ton.GetWalletBalance(ctx, user.Wallet.Address)
 	if err != nil {
 		log.Error(err)
 		return
@@ -393,7 +401,7 @@ func (bot *Bot) inlineSendAll(ctx context.Context, update tgBotAPI.Update, user 
 	chatID := update.CallbackQuery.Message.Chat.ID
 	address := user.Wallet.Address
 
-	balance, err := bot.ton.GetWalletBalance(address)
+	balance, err := bot.ton.GetWalletBalance(ctx, address)
 	if err != nil {
 		log.Error(err)
 		return
