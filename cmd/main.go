@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	log "github.com/sirupsen/logrus"
+	"github.com/xssnick/tonutils-go/tlb"
 	"os"
 	"os/signal"
 	"syscall"
+	"tonflow/blockchain"
 	"tonflow/bot"
 	"tonflow/config"
+	"tonflow/pkg"
 	"tonflow/storage/postgres"
 	"tonflow/storage/redis"
-	"tonflow/tonclient"
 )
 
 func main() {
@@ -18,29 +21,30 @@ func main() {
 	shutdownCh := make(chan os.Signal, 1)
 	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGTERM)
 
-	// ton
-	tonClient, err := tonclient.NewTonClient(config.Config.LiteServers)
+	// ton blockchain client
+	blockchainClient, err := blockchain.NewClient(config.Config.LiteServers)
 	if err != nil {
 		log.Fatalf("failed to init ton service: %v", err)
 	}
 
-	// redis
+	// redis client
 	redisClient, err := redis.NewRedisClient(config.Config.RedisURI)
 	if err != nil {
 		log.Fatalf("failed to init redis client: %v", err)
 	}
 
-	// storage
+	// storage client
 	storageClient, err := postgres.NewConnection(config.Config.PgURI)
 	if err != nil {
 		log.Fatalf("failed to init storage: %v", err)
 	}
+	log.Debug("loaded addresses:\n", pkg.AnyPrint(storageClient.GetInMemoryWallets()))
 
 	// telegram bot
 	botService, err := bot.NewBot(
 		config.Config.BotToken,
 		config.Config.BotAdminID,
-		tonClient,
+		blockchainClient,
 		redisClient,
 		storageClient,
 		config.Config.Debug,
@@ -55,8 +59,24 @@ func main() {
 	botService.Start()
 	log.Infof("%s bot started", config.Config.AppName)
 
+	txCh := make(chan *tlb.Transaction)
+	errCh := make(chan error)
+	go blockchain.Scan(blockchainClient, txCh, errCh)
+	go func() {
+		for {
+			select {
+			case tx := <-txCh:
+				log.Debug("Transaction:", tx.String())
+				botService.IsTonflowWallet(context.Background(), tx)
+			case err = <-errCh:
+				log.Error(err)
+				go blockchain.Scan(blockchainClient, txCh, errCh)
+			}
+		}
+	}()
+
 	<-shutdownCh
 	botService.Stop()
-
 	log.Debugf("%s stopped", config.Config.AppName)
+	os.Exit(0)
 }

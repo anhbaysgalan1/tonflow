@@ -1,4 +1,4 @@
-package tonclient
+package blockchain
 
 import (
 	"context"
@@ -6,22 +6,22 @@ import (
 	"github.com/xssnick/tonutils-go/ton"
 )
 
-type TonClient struct {
+type Client struct {
 	liteClient *liteclient.ConnectionPool
-	tonAPI     *ton.APIClient
+	tonClient  *ton.APIClient
 }
 
-func NewTonClient(configUrl string) (*TonClient, error) {
+func NewClient(configUrl string) (*Client, error) {
 	liteClient := liteclient.NewConnectionPool()
 	err := liteClient.AddConnectionsFromConfigUrl(context.Background(), configUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	tonAPIClient := ton.NewAPIClient(liteClient)
+	tonClient := ton.NewAPIClient(liteClient)
 
-	return &TonClient{
+	return &Client{
 		liteClient: liteClient,
-		tonAPI:     tonAPIClient,
+		tonClient:  tonClient,
 	}, nil
 }

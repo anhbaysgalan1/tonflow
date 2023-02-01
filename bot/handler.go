@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v9"
@@ -17,6 +18,7 @@ import (
 	"net/http"
 	"strings"
 	"tonflow/model"
+	"tonflow/pkg"
 )
 
 // Returns user object from cache or database in case of no cache.
@@ -323,12 +325,6 @@ func (bot *Bot) confirmSending(ctx context.Context, update tgBotAPI.Update, user
 		log.Error(err)
 		return
 	}
-
-	cb := tgBotAPI.NewCallback(update.CallbackQuery.ID, "")
-	_, err = bot.api.Request(cb)
-	if err != nil {
-		log.Error(err)
-	}
 }
 
 func (bot *Bot) inlineReceiveCoins(update tgBotAPI.Update, user *model.User) {
@@ -555,5 +551,47 @@ func (bot *Bot) inlineCancel(ctx context.Context, update tgBotAPI.Update, user *
 	_, err = bot.api.Request(cb)
 	if err != nil {
 		log.Error(err)
+	}
+}
+
+func (bot *Bot) IsTonflowWallet(ctx context.Context, tx *tlb.Transaction) {
+	if tx.IO.In.MsgType == "INTERNAL" {
+		address := tx.IO.In.AsInternal().DstAddr.String()
+		addresses := bot.storage.GetInMemoryWallets()
+		userID, exist := addresses[address]
+		hash := hex.EncodeToString(tx.Hash)
+
+		if exist {
+			from := tx.IO.In.AsInternal().SrcAddr.String()
+			comment := tx.IO.In.AsInternal().Comment()
+			amount := tx.IO.In.AsInternal().Amount.TON()
+
+			amountPretty, err := pkg.PrettyAmount(amount)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			txt := fmt.Sprintf(ReceivedCoins, amountPretty, pkg.ShortAddress(from))
+			if comment != "" {
+				txt += fmt.Sprintf("\nComment: %s", comment)
+			}
+			txt += fmt.Sprintf(SeeTransaction, hash)
+
+			if err := bot.sendNotification(userID, txt, nil); err != nil {
+				log.Error(err)
+				return
+			}
+
+			bal, err := bot.ton.GetWalletBalance(ctx, address)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+
+			if err = bot.sendText(userID, fmt.Sprintf(Balance, bal), inlineBalanceKeyboard); err != nil {
+				log.Error(err)
+			}
+		}
 	}
 }

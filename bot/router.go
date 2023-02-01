@@ -10,14 +10,17 @@ import (
 )
 
 func (bot *Bot) handleUpdate(ctx context.Context, update tgBotAPI.Update) {
-	user, isExisted, err := bot.getTonflowUser(ctx, update.SentFrom())
-	if err != nil {
-		log.Error(err)
-		return
+	user := &model.User{}
+	isExisted := false
+	var err error
+	if update.Message != nil || update.CallbackQuery != nil {
+		user, isExisted, err = bot.getTonflowUser(ctx, update.SentFrom())
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.AnyPrint(user), pkg.AnyPrint(isExisted))
 	}
-
-	log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.AnyPrint(user), pkg.AnyPrint(isExisted))
-
 	switch {
 	case update.Message != nil:
 		bot.handleMessage(ctx, update, user, isExisted)

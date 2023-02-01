@@ -12,6 +12,8 @@ type Storage interface {
 
 	AddWallet(ctx context.Context, wallet *model.Wallet, userID int64) error
 	GetWallet(ctx context.Context, address string) (*model.Wallet, error)
+
+	GetInMemoryWallets() map[string]int64
 }
 
 type Cache interface {
