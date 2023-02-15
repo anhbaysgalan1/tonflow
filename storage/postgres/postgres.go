@@ -12,6 +12,7 @@ import (
 
 type DB struct {
 	*pgxpool.Pool
+	memory map[string]int64
 }
 
 func NewConnection(URI string) (storage.Storage, error) {
@@ -23,8 +24,33 @@ func NewConnection(URI string) (storage.Storage, error) {
 		return nil, err
 	}
 
+	query := `
+		select users.id,
+		       users.wallet
+		from tonflow.users
+	`
+	rows, err := pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	memory := make(map[string]int64)
+	defer rows.Close()
+	for rows.Next() {
+		var (
+			addr   string
+			userID int64
+		)
+
+		err = rows.Scan(&userID, &addr)
+		if err != nil {
+			return nil, err
+		}
+		memory[addr] = userID
+	}
+
 	return &DB{
 		pool,
+		memory,
 	}, nil
 }
 
@@ -67,13 +93,13 @@ func (db *DB) GetUser(ctx context.Context, id int64) (*model.User, error) {
 	user := &model.User{Wallet: &model.Wallet{}}
 
 	err := db.QueryRow(ctx, query, id).Scan(
-		user.ID,
-		user.Username,
-		user.FirstName,
-		user.LastName,
-		user.LanguageCode,
-		user.Wallet.Address,
-		user.FirstMessageAt,
+		&user.ID,
+		&user.Username,
+		&user.FirstName,
+		&user.LastName,
+		&user.LanguageCode,
+		&user.Wallet.Address,
+		&user.FirstMessageAt,
 	)
 	if err != nil {
 		return nil, err
@@ -118,6 +144,7 @@ func (db *DB) AddWallet(ctx context.Context, wallet *model.Wallet, userID int64)
 		return err
 	}
 
+	db.memory[wallet.Address] = userID
 	return nil
 }
 
@@ -131,13 +158,17 @@ func (db *DB) GetWallet(ctx context.Context, address string) (*model.Wallet, err
 	`
 	wallet := &model.Wallet{}
 	err := db.QueryRow(ctx, query, address).Scan(
-		wallet.Address,
-		wallet.Version,
-		wallet.Seed,
+		&wallet.Address,
+		&wallet.Version,
+		&wallet.Seed,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return wallet, nil
+}
+
+func (db *DB) GetInMemoryWallets() map[string]int64 {
+	return db.memory
 }

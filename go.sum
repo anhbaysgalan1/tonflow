@@ -41,8 +41,8 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.8.1 h1:w7B6lhMri9wdJUVmEZPGGhZzrYTPvgJArz7wNPgYKsk=
-github.com/xssnick/tonutils-go v1.5.0 h1:r4SmSH0FWyGQRkD4wz9nQekL8ow9/IA7BJ1K5kazrPE=
-github.com/xssnick/tonutils-go v1.5.0/go.mod h1:wH8ldhLueyfXW15r3MyaIq9YzA+8bzvL6UMU2BLp08g=
+github.com/xssnick/tonutils-go v1.5.1 h1:1+AANTuMzDPUGc4j1HHJZgPyZIE97YjxfC9PTnDPjI0=
+github.com/xssnick/tonutils-go v1.5.1/go.mod h1:wH8ldhLueyfXW15r3MyaIq9YzA+8bzvL6UMU2BLp08g=
 go.uber.org/atomic v1.10.0 h1:9qC72Qh0+3MqyJbAn8YU5xVq1frD8bn3JtD2oXtafVQ=
 go.uber.org/atomic v1.10.0/go.mod h1:LUxbIzbOniOlMKjJjyPfpl4v+PKK2cNJn91OQbhoJI0=
 golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 h1:Y/gsMcFOcR+6S6f3YeMKl5g+dZMEWqcz5Czj/GWYbkM=

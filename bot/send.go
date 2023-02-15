@@ -19,6 +19,20 @@ func (bot *Bot) sendText(chatID int64, text string, markup interface{}) error {
 	return nil
 }
 
+func (bot *Bot) sendNotification(chatID int64, text string, markup interface{}) error {
+	msg := tgBotAPI.NewMessage(chatID, text)
+	msg.ParseMode = "HTML"
+	msg.DisableNotification = false
+	msg.ReplyMarkup = markup
+
+	_, err := bot.api.Send(msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (bot *Bot) sendPhoto(chatID int64, data []byte, caption string, markup interface{}) error {
 	photoBytes := tgBotAPI.FileBytes{
 		Bytes: data,

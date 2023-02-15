@@ -5,15 +5,15 @@ import (
 	tgBotAPI "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	log "github.com/sirupsen/logrus"
 	"sync"
+	"tonflow/blockchain"
 	"tonflow/storage"
-	"tonflow/tonclient"
 )
 
 type Bot struct {
 	BotName         string
 	adminID         int64
 	api             *tgBotAPI.BotAPI
-	ton             *tonclient.TonClient
+	ton             *blockchain.Client
 	redis           storage.Cache
 	storage         storage.Storage
 	key             string
@@ -35,7 +35,7 @@ func (l logger) Printf(format string, v ...interface{}) {
 func NewBot(
 	token string,
 	admin int64,
-	ton *tonclient.TonClient,
+	ton *blockchain.Client,
 	redisClient storage.Cache,
 	storage storage.Storage,
 	debug bool,

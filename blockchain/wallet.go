@@ -1,4 +1,4 @@
-package tonclient
+package blockchain
 
 import (
 	"context"
@@ -9,11 +9,11 @@ import (
 	"tonflow/model"
 )
 
-func (ton *TonClient) NewWallet() (*model.Wallet, error) {
+func (c *Client) NewWallet() (*model.Wallet, error) {
 	seed := wallet.NewSeed()
 	version := wallet.V4R2
 
-	w, err := wallet.FromSeed(ton.tonAPI, seed, version)
+	w, err := wallet.FromSeed(c.tonClient, seed, version)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (ton *TonClient) NewWallet() (*model.Wallet, error) {
 	}, nil
 }
 
-func (ton *TonClient) ValidateWallet(addr string) error {
+func (c *Client) ValidateWallet(addr string) error {
 	_, err := address.ParseAddr(addr)
 	if err != nil {
 		return err
@@ -33,20 +33,20 @@ func (ton *TonClient) ValidateWallet(addr string) error {
 	return nil
 }
 
-func (ton *TonClient) GetWalletBalance(ctx context.Context, addr string) (string, error) {
-	ctx = ton.liteClient.StickyContext(ctx)
+func (c *Client) GetWalletBalance(ctx context.Context, addr string) (string, error) {
+	ctx = c.liteClient.StickyContext(ctx)
 
 	wltAddr, err := address.ParseAddr(addr)
 	if err != nil {
 		return "", err
 	}
 
-	block, err := ton.tonAPI.GetMasterchainInfo(ctx)
+	block, err := c.tonClient.GetMasterchainInfo(ctx)
 	if err != nil {
 		return "", err
 	}
 
-	wlt, err := ton.tonAPI.GetAccount(ctx, block, wltAddr)
+	wlt, err := c.tonClient.GetAccount(ctx, block, wltAddr)
 	if err != nil {
 		return "", err
 	}
@@ -58,9 +58,9 @@ func (ton *TonClient) GetWalletBalance(ctx context.Context, addr string) (string
 	return wlt.State.Balance.TON(), nil
 }
 
-func (ton *TonClient) Send(ctx context.Context, user *model.User) error {
+func (c *Client) Send(ctx context.Context, user *model.User) error {
 	words := strings.Split(user.Wallet.Seed, " ")
-	w, err := wallet.FromSeed(ton.tonAPI, words, user.Wallet.Version)
+	w, err := wallet.FromSeed(c.tonClient, words, user.Wallet.Version)
 	if err != nil {
 		return err
 	}
