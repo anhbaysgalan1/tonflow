@@ -35,6 +35,14 @@ func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update, user 
 		switch update.Message.Command() {
 		case "start":
 			bot.cmdStart(update, user, isExisted)
+		case "balance":
+			bot.inlineBalance(ctx, update, user)
+		case "receive":
+			bot.inlineReceiveCoins(update, user)
+		case "send":
+			bot.inlineSendCoins(ctx, update, user)
+		case "cancel":
+			bot.commonCancel(ctx, update, user)
 		}
 	default:
 		switch {

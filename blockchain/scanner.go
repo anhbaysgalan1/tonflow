@@ -4,34 +4,42 @@ import (
 	"context"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
+	"tonflow/pkg"
 )
 
-func Scan(c *Client, txChan chan *tlb.Transaction, errCh chan error) {
+func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 	ctx := c.liteClient.StickyContext(context.Background())
 
+	// get the latest block of master chain
 	master, err := c.tonClient.GetMasterchainInfo(ctx)
 	if err != nil {
 		errCh <- fmt.Errorf("failed to get masterchain info: %w", err)
 		return
 	}
+	log.Debugf("masterchain info: %s", pkg.AnyPrint(master))
 
-	// storage for last seen shard seqno
-	shardLastSeqno := map[string]uint32{}
-
-	// getting information about other work-chains and shards of first master block
+	// getting information about other work-chains and its shards of first master block
 	// to init storage of last seen shard seq numbers
 	firstShards, err := c.tonClient.GetBlockShardsInfo(ctx, master)
 	if err != nil {
 		errCh <- fmt.Errorf("failed to get work-chains and shards of first master block: %w", err)
 		return
 	}
+	log.Debugf("all workchains and its shards 1: %s", pkg.AnyPrint(master))
+
+	// storage for last seen shard seqno
+	// TODO: load from DB. So needs to save somewhere in code
+	shardLastSeqno := map[string]uint32{}
+
+	// save shard workchain | shard and seqno
 	for _, shard := range firstShards {
 		shardLastSeqno[getShardID(shard)] = shard.SeqNo
 	}
+
+	log.Debugf("shardLastSeqno 1: %s", pkg.AnyPrint(shardLastSeqno))
 
 	for {
 		log.Debugf("scanning %d master block ...\n", master.SeqNo)
@@ -42,6 +50,7 @@ func Scan(c *Client, txChan chan *tlb.Transaction, errCh chan error) {
 			errCh <- fmt.Errorf("failed to get other work-chains and shards of master block: %w", err)
 			return
 		}
+		log.Debugf("all workchains and its shards 2: %s", pkg.AnyPrint(master))
 
 		// shards in master block may have holes, e.g. shard seqno 2756461, then 2756463, and no 2756462 in master chain
 		// thus we need to scan a bit back in case of discovering a hole, till last seen, to fill the misses.
@@ -53,6 +62,8 @@ func Scan(c *Client, txChan chan *tlb.Transaction, errCh chan error) {
 				return
 			}
 			shardLastSeqno[getShardID(shard)] = shard.SeqNo
+			log.Debugf("shardLastSeqno 2: %s", pkg.AnyPrint(shardLastSeqno))
+
 			newShards = append(newShards, notSeen...)
 		}
 
@@ -60,7 +71,7 @@ func Scan(c *Client, txChan chan *tlb.Transaction, errCh chan error) {
 
 		// for each shard block getting transactions
 		for _, shard := range newShards {
-			log.Debugf("scanning block %d of shard %x ...", shard.SeqNo, uint64(shard.Shard))
+			log.Debugf("scanning block %d of shard %d ...", shard.SeqNo, shard.Shard)
 
 			var fetchedIDs []*tlb.TransactionID
 			var after *tlb.TransactionID

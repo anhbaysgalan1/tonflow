@@ -554,6 +554,22 @@ func (bot *Bot) inlineCancel(ctx context.Context, update tgBotAPI.Update, user *
 	}
 }
 
+func (bot *Bot) commonCancel(ctx context.Context, update tgBotAPI.Update, user *model.User) {
+	user.StageData = &model.StageData{
+		Stage:         model.ZeroStage,
+		AddressToSend: "",
+		AmountToSend:  "",
+	}
+
+	err := bot.redis.SetUserCache(ctx, user)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	bot.inlineBalance(ctx, update, user)
+}
+
 func (bot *Bot) IsTonflowWallet(ctx context.Context, tx *tlb.Transaction) {
 	if tx.IO.In.MsgType == "INTERNAL" {
 		address := tx.IO.In.AsInternal().DstAddr.String()
