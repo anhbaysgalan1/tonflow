@@ -26,6 +26,7 @@ type StageData struct {
 	Stage         Stage  `json:"stage"`
 	AddressToSend string `json:"addressToSend"`
 	AmountToSend  string `json:"amountToSend"`
+	SendAll       bool   `json:"sendAll"`
 	Comment       string `json:"comment"`
 }
 

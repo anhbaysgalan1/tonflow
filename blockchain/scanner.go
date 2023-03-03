@@ -19,7 +19,7 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 		errCh <- fmt.Errorf("failed to get masterchain info: %w", err)
 		return
 	}
-	log.Debugf("masterchain info: %s", pkg.AnyPrint(master))
+	log.Debugf("masterchain info: %s", pkg.PrintAny(master))
 
 	// getting information about other work-chains and its shards of first master block
 	// to init storage of last seen shard seq numbers
@@ -28,7 +28,7 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 		errCh <- fmt.Errorf("failed to get work-chains and shards of first master block: %w", err)
 		return
 	}
-	log.Debugf("all workchains and its shards 1: %s", pkg.AnyPrint(master))
+	log.Debugf("all workchains and its shards 1: %s", pkg.PrintAny(master))
 
 	// storage for last seen shard seqno
 	// TODO: load from DB. So needs to save somewhere in code
@@ -39,7 +39,7 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 		shardLastSeqno[getShardID(shard)] = shard.SeqNo
 	}
 
-	log.Debugf("shardLastSeqno 1: %s", pkg.AnyPrint(shardLastSeqno))
+	log.Debugf("shardLastSeqno 1: %s", pkg.PrintAny(shardLastSeqno))
 
 	for {
 		log.Debugf("scanning %d master block ...\n", master.SeqNo)
@@ -50,7 +50,7 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 			errCh <- fmt.Errorf("failed to get other work-chains and shards of master block: %w", err)
 			return
 		}
-		log.Debugf("all workchains and its shards 2: %s", pkg.AnyPrint(master))
+		log.Debugf("all workchains and its shards 2: %s", pkg.PrintAny(master))
 
 		// shards in master block may have holes, e.g. shard seqno 2756461, then 2756463, and no 2756462 in master chain
 		// thus we need to scan a bit back in case of discovering a hole, till last seen, to fill the misses.
@@ -62,7 +62,7 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 				return
 			}
 			shardLastSeqno[getShardID(shard)] = shard.SeqNo
-			log.Debugf("shardLastSeqno 2: %s", pkg.AnyPrint(shardLastSeqno))
+			log.Debugf("shardLastSeqno 2: %s", pkg.PrintAny(shardLastSeqno))
 
 			newShards = append(newShards, notSeen...)
 		}

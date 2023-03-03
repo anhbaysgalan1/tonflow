@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.3"
 
 volumes:
   pg:
@@ -13,7 +13,7 @@ services:
       - "${PG_PORT}:${PG_PORT}"
     restart: always
     env_file:
-      - .env
+      - local.env
     environment:
       POSTGRES_DB: "${PG_NAME}"
       POSTGRES_USER: "${PG_USER}"
@@ -29,7 +29,7 @@ services:
       - "${REDIS_PORT}:${REDIS_PORT}"
     restart: always
     env_file:
-      - .env
+      - local.env
     volumes:
       - redis:/data
 
@@ -40,4 +40,4 @@ services:
       - "8080:8080"
     restart: on-failure
     env_file:
-      - .env
+      - local.env

@@ -18,6 +18,12 @@ func NewClient(configUrl string) (*Client, error) {
 		return nil, err
 	}
 
+	//lt := liteclient.NewConnectionPool()
+	//err = lt.AddConnection(context.Background(), "ip:port", "key")
+	//if err != nil {
+	//	log.Fatalf("add connection error: %s", err)
+	//}
+
 	tonClient := ton.NewAPIClient(liteClient)
 
 	return &Client{

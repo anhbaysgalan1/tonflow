@@ -2,11 +2,14 @@ package blockchain
 
 import (
 	"context"
+	"fmt"
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton/wallet"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 	"strings"
 	"tonflow/model"
+	"tonflow/pkg"
 )
 
 func (c *Client) NewWallet() (*model.Wallet, error) {
@@ -23,14 +26,6 @@ func (c *Client) NewWallet() (*model.Wallet, error) {
 		Version: version,
 		Seed:    strings.Join(seed, " "),
 	}, nil
-}
-
-func (c *Client) ValidateWallet(addr string) error {
-	_, err := address.ParseAddr(addr)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *Client) GetWalletBalance(ctx context.Context, addr string) (string, error) {
@@ -58,8 +53,21 @@ func (c *Client) GetWalletBalance(ctx context.Context, addr string) (string, err
 	return wlt.State.Balance.TON(), nil
 }
 
-func (c *Client) Send(ctx context.Context, user *model.User) error {
-	words := strings.Split(user.Wallet.Seed, " ")
+func (c *Client) ValidateWallet(addr string) error {
+	_, err := address.ParseAddr(addr)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) Send(ctx context.Context, user *model.User, key string) error {
+	seed, err := pkg.Decode(user.Wallet.Seed, key)
+	if err != nil {
+		return err
+	}
+
+	words := strings.Split(seed, " ")
 	w, err := wallet.FromSeed(c.tonClient, words, user.Wallet.Version)
 	if err != nil {
 		return err
@@ -75,4 +83,52 @@ func (c *Client) Send(ctx context.Context, user *model.User) error {
 	}
 
 	return nil
+}
+
+func (c *Client) SendAll(ctx context.Context, user *model.User, key string) error {
+	seed, err := pkg.Decode(user.Wallet.Seed, key)
+	if err != nil {
+		return err
+	}
+
+	words := strings.Split(seed, " ")
+	w, err := wallet.FromSeed(c.tonClient, words, user.Wallet.Version)
+	if err != nil {
+		return err
+	}
+
+	var body *cell.Cell
+	if user.StageData.Comment != "" {
+		body, err = CreateCommentCell(user.StageData.Comment)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = w.Send(ctx, &wallet.Message{
+		Mode: 128,
+		InternalMessage: &tlb.InternalMessage{
+			IHRDisabled: true,
+			Bounce:      false,
+			DstAddr:     address.MustParseAddr(user.StageData.AddressToSend),
+			Amount:      tlb.MustFromTON("0"),
+			Body:        body,
+		},
+	}, true)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateCommentCell(text string) (*cell.Cell, error) {
+	// comment ident
+	root := cell.BeginCell().MustStoreUInt(0, 32)
+
+	if err := root.StoreStringSnake(text); err != nil {
+		return nil, fmt.Errorf("failed to build comment: %w", err)
+	}
+
+	return root.EndCell(), nil
 }

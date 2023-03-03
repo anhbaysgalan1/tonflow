@@ -62,7 +62,7 @@ func (db *DB) AddUser(ctx context.Context, user *tgbotapi.User) error {
 		first_name,
 		last_name,
 		language_code,
-		first_message_at)
+		created_at)
 		values ($1, $2, $3, $4, $5, $6)
 	`
 	_, err := db.Exec(ctx, query,
@@ -86,7 +86,7 @@ func (db *DB) GetUser(ctx context.Context, id int64) (*model.User, error) {
 		       users.last_name,
 		       users.language_code,
 		       users.wallet,
-		       users.first_message_at
+		       users.created_at
 		from tonflow.users
 		where id = $1
 	`

@@ -38,7 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to init storage: %v", err)
 	}
-	log.Debug("loaded addresses:\n", pkg.AnyPrint(storageClient.GetInMemoryWallets()))
+	log.Debug("in memory addresses:\n", pkg.PrintAny(storageClient.GetInMemoryWallets()))
 
 	// telegram bot
 	botService, err := bot.NewBot(
@@ -67,7 +67,7 @@ func main() {
 			select {
 			case tx := <-txCh:
 				log.Debug("Transaction:", tx.String())
-				botService.IsTonflowWallet(context.Background(), tx)
+				botService.WalletNotify(context.Background(), tx)
 			case err = <-errCh:
 				log.Error(err)
 				go blockchain.Scan(blockchainClient, txCh, errCh)
@@ -77,6 +77,7 @@ func main() {
 
 	<-shutdownCh
 	botService.Stop()
+	// scan.stop()
 	log.Debugf("%s stopped", config.Config.AppName)
 	os.Exit(0)
 }
