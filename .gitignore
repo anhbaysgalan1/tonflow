@@ -1,3 +1,4 @@
-.idea
-local.env
-todo.md
+/.idea
+/local.env
+/prod.env
+/todo.md
