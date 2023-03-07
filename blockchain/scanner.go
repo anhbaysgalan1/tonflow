@@ -8,52 +8,47 @@ import (
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton"
 	"tonflow/pkg"
+	"tonflow/storage"
 )
 
-func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
+func getShardID(shard *tlb.BlockInfo) string {
+	return fmt.Sprintf("%d|%d", shard.Workchain, shard.Shard)
+}
+
+func Scan(c *Client, storage storage.Storage, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 	ctx := c.liteClient.StickyContext(context.Background())
 
-	// get the latest block of master chain
+	shardLastSeqno, err := storage.GetLastSeqno(ctx)
+	if err != nil {
+		errCh <- fmt.Errorf("failed to get shard last seqno from storage: %w", err)
+		return
+	}
+
 	master, err := c.tonClient.GetMasterchainInfo(ctx)
 	if err != nil {
-		errCh <- fmt.Errorf("failed to get masterchain info: %w", err)
+		errCh <- fmt.Errorf("failed to get master chain latest block: %w", err)
 		return
 	}
-	log.Debugf("masterchain info: %s", pkg.PrintAny(master))
 
-	// getting information about other work-chains and its shards of first master block
-	// to init storage of last seen shard seq numbers
-	firstShards, err := c.tonClient.GetBlockShardsInfo(ctx, master)
-	if err != nil {
-		errCh <- fmt.Errorf("failed to get work-chains and shards of first master block: %w", err)
-		return
-	}
-	log.Debugf("all workchains and its shards 1: %s", pkg.PrintAny(master))
-
-	// storage for last seen shard seqno
-	// TODO: load from DB. So needs to save somewhere in code
-	shardLastSeqno := map[string]uint32{}
-
-	// save shard workchain | shard and seqno
-	for _, shard := range firstShards {
-		shardLastSeqno[getShardID(shard)] = shard.SeqNo
-	}
-
-	log.Debugf("shardLastSeqno 1: %s", pkg.PrintAny(shardLastSeqno))
-
-	for {
-		log.Debugf("scanning %d master block ...\n", master.SeqNo)
-
-		// getting information about other work-chains and shards of master block
-		currentShards, err := c.tonClient.GetBlockShardsInfo(ctx, master)
+	if len(shardLastSeqno) == 0 {
+		workchainsShards, err := c.tonClient.GetBlockShardsInfo(ctx, master)
 		if err != nil {
-			errCh <- fmt.Errorf("failed to get other work-chains and shards of master block: %w", err)
+			errCh <- fmt.Errorf("failed to get workchains and its shards of master block: %w", err)
 			return
 		}
-		log.Debugf("all workchains and its shards 2: %s", pkg.PrintAny(master))
 
-		// shards in master block may have holes, e.g. shard seqno 2756461, then 2756463, and no 2756462 in master chain
-		// thus we need to scan a bit back in case of discovering a hole, till last seen, to fill the misses.
+		for _, shard := range workchainsShards {
+			shardLastSeqno[getShardID(shard)] = shard.SeqNo
+		}
+	}
+
+	for {
+		currentShards, err := c.tonClient.GetBlockShardsInfo(ctx, master)
+		if err != nil {
+			errCh <- fmt.Errorf("failed to get workchains and its shards of master block: %w", err)
+			return
+		}
+
 		var newShards []*tlb.BlockInfo
 		for _, shard := range currentShards {
 			notSeen, err := getNotSeenShards(ctx, c.tonClient, shard, shardLastSeqno)
@@ -61,23 +56,25 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 				errCh <- fmt.Errorf("failed to get not seen shards: %w", err)
 				return
 			}
-			shardLastSeqno[getShardID(shard)] = shard.SeqNo
-			log.Debugf("shardLastSeqno 2: %s", pkg.PrintAny(shardLastSeqno))
 
+			shardLastSeqno[getShardID(shard)] = shard.SeqNo
 			newShards = append(newShards, notSeen...)
+		}
+
+		log.Debugf("shardLastSeqno:\n%s", pkg.PrintAny(shardLastSeqno))
+
+		err = storage.SetLastSeqno(context.Background(), shardLastSeqno)
+		if err != nil {
+			log.Errorf("failed to set shard last seqno into storage: %s", err)
 		}
 
 		var txList []*tlb.Transaction
 
-		// for each shard block getting transactions
 		for _, shard := range newShards {
-			log.Debugf("scanning block %d of shard %d ...", shard.SeqNo, shard.Shard)
-
 			var fetchedIDs []*tlb.TransactionID
 			var after *tlb.TransactionID
 			var more = true
 
-			// load all transactions in batches with 100 transactions in each while exists
 			for more {
 				fetchedIDs, more, err = c.tonClient.GetBlockTransactions(ctx, shard, 100, after)
 				if err != nil {
@@ -86,12 +83,10 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 				}
 
 				if more {
-					// set load offset for next query (pagination)
 					after = fetchedIDs[len(fetchedIDs)-1]
 				}
 
 				for _, id := range fetchedIDs {
-					// get full transaction by id
 					tx, err := c.tonClient.GetTransaction(ctx, shard, address.NewAddress(0, 0, id.AccountID), id.LT)
 					if err != nil {
 						errCh <- fmt.Errorf("failed to get tx data: %w", err)
@@ -103,25 +98,19 @@ func Scan(c *Client, txChan chan<- *tlb.Transaction, errCh chan<- error) {
 		}
 
 		for _, transaction := range txList {
-			// log.Debug("TRANSACTION:", i, transaction.String())
 			txChan <- transaction
 		}
 
 		if len(txList) == 0 {
-			log.Debugf("no transactions in %d block", master.SeqNo)
+			log.Debugf("no transactions in %d master block", master.SeqNo)
 		}
 
 		master, err = c.tonClient.WaitNextMasterBlock(ctx, master)
 		if err != nil {
-			errCh <- fmt.Errorf("failed to wait next master: %w", err)
+			errCh <- fmt.Errorf("failed to wait next master block: %w", err)
 			return
 		}
 	}
-}
-
-// func to get storage map key
-func getShardID(shard *tlb.BlockInfo) string {
-	return fmt.Sprintf("%d|%d", shard.Workchain, shard.Shard)
 }
 
 func getNotSeenShards(ctx context.Context, api *ton.APIClient, shard *tlb.BlockInfo, shardLastSeqno map[string]uint32) (ret []*tlb.BlockInfo, err error) {

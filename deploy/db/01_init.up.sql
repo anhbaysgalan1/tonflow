@@ -21,4 +21,10 @@ create table if not exists tonflow.wallets
     created_at timestamp      not null
 );
 
+create table if not exists tonflow.last_seqno
+(
+    id    varchar unique not null,
+    seqno integer        not null
+);
+
 commit;

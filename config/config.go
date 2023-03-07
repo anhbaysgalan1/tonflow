@@ -26,7 +26,6 @@ var Config = struct {
 	LiteServers       string
 	PrivateLiteServer string
 	BlockchainTxFee   string `env:"BLOCKCHAIN_TX_FEE,required"`
-	Key               string `env:"KEY,required"`
 	RedisHost         string `env:"REDIS_HOST,required"`
 	RedisPort         string `env:"REDIS_PORT,required"`
 	RedisURI          string
@@ -70,7 +69,12 @@ func GetConfig() {
 
 	Config.PgURI = fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		Config.PgUser, Config.PgPassword, Config.PgHost, Config.PgPort, Config.PgName, Config.PgSSL,
+		Config.PgUser,
+		Config.PgPassword,
+		Config.PgHost,
+		Config.PgPort,
+		Config.PgName,
+		Config.PgSSL,
 	)
 
 	if Config.Debug {

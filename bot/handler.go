@@ -16,6 +16,7 @@ import (
 	"image/jpeg"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"tonflow/model"
 	"tonflow/pkg"
@@ -47,7 +48,7 @@ func (bot *Bot) getTonflowUser(ctx context.Context, tgUser *tgBotAPI.User) (*mod
 			}
 			log.Debugf("generated seed: %v", wlt.Seed)
 
-			wlt.Seed, err = pkg.Encode(wlt.Seed, bot.key)
+			wlt.Seed, err = pkg.Encode(wlt.Seed, strconv.FormatInt(tgUser.ID, 10))
 			if err != nil {
 				log.Error(err)
 				return nil, false, nil
@@ -307,13 +308,13 @@ func (bot *Bot) confirmSending(ctx context.Context, update tgBotAPI.Update, user
 	}
 
 	if user.StageData.SendAll == true {
-		err := bot.ton.SendAll(ctx, user, bot.key)
+		err := bot.ton.SendAll(ctx, user)
 		if err != nil {
 			log.Error(err)
 			return
 		}
 	} else {
-		err = bot.ton.Send(ctx, user, bot.key)
+		err = bot.ton.Send(ctx, user)
 		if err != nil {
 			log.Error(err)
 			return

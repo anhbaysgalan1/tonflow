@@ -7,6 +7,7 @@ import (
 	"github.com/xssnick/tonutils-go/tlb"
 	"github.com/xssnick/tonutils-go/ton/wallet"
 	"github.com/xssnick/tonutils-go/tvm/cell"
+	"strconv"
 	"strings"
 	"tonflow/model"
 	"tonflow/pkg"
@@ -61,8 +62,8 @@ func (c *Client) ValidateWallet(addr string) error {
 	return nil
 }
 
-func (c *Client) Send(ctx context.Context, user *model.User, key string) error {
-	seed, err := pkg.Decode(user.Wallet.Seed, key)
+func (c *Client) Send(ctx context.Context, user *model.User) error {
+	seed, err := pkg.Decode(user.Wallet.Seed, strconv.FormatInt(user.ID, 10))
 	if err != nil {
 		return err
 	}
@@ -85,8 +86,8 @@ func (c *Client) Send(ctx context.Context, user *model.User, key string) error {
 	return nil
 }
 
-func (c *Client) SendAll(ctx context.Context, user *model.User, key string) error {
-	seed, err := pkg.Decode(user.Wallet.Seed, key)
+func (c *Client) SendAll(ctx context.Context, user *model.User) error {
+	seed, err := pkg.Decode(user.Wallet.Seed, strconv.FormatInt(user.ID, 10))
 	if err != nil {
 		return err
 	}

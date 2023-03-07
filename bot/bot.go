@@ -40,7 +40,6 @@ func NewBot(
 	storage storage.Storage,
 	debug bool,
 	blockchainTxFee string,
-	key string,
 ) (*Bot, error) {
 	botAPI, err := tgBotAPI.NewBotAPI(token)
 	if err != nil {
@@ -62,7 +61,6 @@ func NewBot(
 		redis:           redisClient,
 		storage:         storage,
 		blockchainTxFee: blockchainTxFee,
-		key:             key,
 		stopCh:          make(chan struct{}),
 	}, nil
 

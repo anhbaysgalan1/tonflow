@@ -49,7 +49,6 @@ func main() {
 		storageClient,
 		config.Config.Debug,
 		config.Config.BlockchainTxFee,
-		config.Config.Key,
 	)
 	if err != nil {
 		log.Fatalf("failed to init bot service: %v", err)
@@ -61,7 +60,7 @@ func main() {
 
 	txCh := make(chan *tlb.Transaction)
 	errCh := make(chan error)
-	go blockchain.Scan(blockchainClient, txCh, errCh)
+	go blockchain.Scan(blockchainClient, storageClient, txCh, errCh)
 	go func() {
 		for {
 			select {
@@ -70,7 +69,7 @@ func main() {
 				botService.WalletNotify(context.Background(), tx)
 			case err = <-errCh:
 				log.Error(err)
-				go blockchain.Scan(blockchainClient, txCh, errCh)
+				go blockchain.Scan(blockchainClient, storageClient, txCh, errCh)
 			}
 		}
 	}()
