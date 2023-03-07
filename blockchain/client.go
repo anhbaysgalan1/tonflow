@@ -20,7 +20,7 @@ func NewClient(configUrl string, prod bool) (*Client, error) {
 	switch prod {
 	case true:
 		liteClient = liteclient.NewConnectionPool()
-		err = liteClient.AddConnection(context.Background(), "172.17.0.1:11358", "VdZyqnuUGqO9BaF2v+lt7isk/igihPUu9Vh74/wuwrc=")
+		err = liteClient.AddConnection(context.Background(), "host.docker.internal:11358", "VdZyqnuUGqO9BaF2v+lt7isk/igihPUu9Vh74/wuwrc=")
 	default:
 		liteClient = liteclient.NewConnectionPool()
 		err = liteClient.AddConnectionsFromConfigUrl(context.Background(), configUrl)
