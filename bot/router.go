@@ -19,7 +19,7 @@ func (bot *Bot) handleUpdate(ctx context.Context, update tgBotAPI.Update) {
 			log.Error(err)
 			return
 		}
-		log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.AnyPrint(user), pkg.AnyPrint(isExisted))
+		log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.PrintAny(user), pkg.PrintAny(isExisted))
 	}
 	switch {
 	case update.Message != nil:
@@ -66,25 +66,33 @@ func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update, user 
 
 func (bot *Bot) handleCallback(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	switch update.CallbackData() {
+
 	case "receive":
 		bot.inlineReceiveCoins(update, user)
+
 	case "send":
 		bot.inlineSendCoins(ctx, update, user)
+
 	case "balance":
 		bot.inlineBalance(ctx, update, user)
+
 	case "update balance":
 		bot.inlineBalanceUpdate(ctx, update, user)
+
 	case "cancel":
 		bot.inlineCancel(ctx, update, user)
 		bot.inlineBalance(ctx, update, user)
+
 	case "add comment":
 		bot.inlineAddComment(ctx, update, user)
+
 	case "send all":
 		bot.inlineSendAll(ctx, update, user)
+
 	case "confirm":
 		bot.confirmSending(ctx, update, user)
-		bot.inlineBalance(ctx, update, user)
+
 	default:
-		log.Error(fmt.Errorf("need handle this case"))
+		log.Warning(fmt.Errorf("need handle this case"))
 	}
 }

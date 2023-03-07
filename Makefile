@@ -9,4 +9,4 @@ log:
 	docker logs --follow tonflow
 rebuild:
 	make build
-	docker-compose up
+	docker-compose --env-file local.env up

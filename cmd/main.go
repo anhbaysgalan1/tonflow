@@ -9,47 +9,46 @@ import (
 	"syscall"
 	"tonflow/blockchain"
 	"tonflow/bot"
-	"tonflow/config"
+	. "tonflow/config"
 	"tonflow/pkg"
 	"tonflow/storage/postgres"
 	"tonflow/storage/redis"
 )
 
 func main() {
-	config.GetConfig()
+	GetConfig()
 
 	shutdownCh := make(chan os.Signal, 1)
 	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGTERM)
 
 	// ton blockchain client
-	blockchainClient, err := blockchain.NewClient(config.Config.LiteServers)
+	blockchainClient, err := blockchain.NewClient(Config.LiteServers, Config.Production)
 	if err != nil {
 		log.Fatalf("failed to init ton service: %v", err)
 	}
 
 	// redis client
-	redisClient, err := redis.NewRedisClient(config.Config.RedisURI)
+	redisClient, err := redis.NewRedisClient(Config.RedisURI)
 	if err != nil {
 		log.Fatalf("failed to init redis client: %v", err)
 	}
 
 	// storage client
-	storageClient, err := postgres.NewConnection(config.Config.PgURI)
+	storageClient, err := postgres.NewConnection(Config.PgURI)
 	if err != nil {
 		log.Fatalf("failed to init storage: %v", err)
 	}
-	log.Debug("loaded addresses:\n", pkg.AnyPrint(storageClient.GetInMemoryWallets()))
+	log.Debug("in memory addresses:\n", pkg.PrintAny(storageClient.GetInMemoryWallets()))
 
 	// telegram bot
 	botService, err := bot.NewBot(
-		config.Config.BotToken,
-		config.Config.BotAdminID,
+		Config.BotToken,
+		Config.BotAdminID,
 		blockchainClient,
 		redisClient,
 		storageClient,
-		config.Config.Debug,
-		config.Config.BlockchainTxFee,
-		config.Config.Key,
+		Config.Debug,
+		Config.BlockchainTxFee,
 	)
 	if err != nil {
 		log.Fatalf("failed to init bot service: %v", err)
@@ -57,26 +56,27 @@ func main() {
 	log.Debugf("Authorized on Telegram bot @%s", botService.BotName)
 
 	botService.Start()
-	log.Infof("%s bot started", config.Config.AppName)
+	log.Infof("%s bot started", Config.AppName)
 
 	txCh := make(chan *tlb.Transaction)
 	errCh := make(chan error)
-	go blockchain.Scan(blockchainClient, txCh, errCh)
+	go blockchain.Scan(blockchainClient, storageClient, txCh, errCh)
 	go func() {
 		for {
 			select {
 			case tx := <-txCh:
 				log.Debug("Transaction:", tx.String())
-				botService.IsTonflowWallet(context.Background(), tx)
+				botService.WalletNotify(context.Background(), tx)
 			case err = <-errCh:
 				log.Error(err)
-				go blockchain.Scan(blockchainClient, txCh, errCh)
+				go blockchain.Scan(blockchainClient, storageClient, txCh, errCh)
 			}
 		}
 	}()
 
 	<-shutdownCh
 	botService.Stop()
-	log.Debugf("%s stopped", config.Config.AppName)
+	// scan.stop()
+	log.Debugf("%s stopped", Config.AppName)
 	os.Exit(0)
 }

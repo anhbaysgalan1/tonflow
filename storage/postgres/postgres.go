@@ -5,6 +5,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	log "github.com/sirupsen/logrus"
 	"time"
 	"tonflow/model"
 	"tonflow/storage"
@@ -62,7 +63,7 @@ func (db *DB) AddUser(ctx context.Context, user *tgbotapi.User) error {
 		first_name,
 		last_name,
 		language_code,
-		first_message_at)
+		created_at)
 		values ($1, $2, $3, $4, $5, $6)
 	`
 	_, err := db.Exec(ctx, query,
@@ -86,7 +87,7 @@ func (db *DB) GetUser(ctx context.Context, id int64) (*model.User, error) {
 		       users.last_name,
 		       users.language_code,
 		       users.wallet,
-		       users.first_message_at
+		       users.created_at
 		from tonflow.users
 		where id = $1
 	`
@@ -171,4 +172,59 @@ func (db *DB) GetWallet(ctx context.Context, address string) (*model.Wallet, err
 
 func (db *DB) GetInMemoryWallets() map[string]int64 {
 	return db.memory
+}
+
+func (db *DB) SetLastSeqno(ctx context.Context, shards map[string]uint32) error {
+	if len(shards) == 0 {
+		log.Warning("no shards")
+		return nil
+	}
+
+	batch := &pgx.Batch{}
+
+	for k, v := range shards {
+		batch.Queue("insert into tonflow.last_seqno (id, seqno) values ($1, $2) on conflict (id) do update set seqno = $2", k, v)
+	}
+
+	b := db.SendBatch(ctx, batch)
+
+	_, err := b.Exec()
+	if err != nil {
+		return err
+	}
+
+	err = b.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) GetLastSeqno(ctx context.Context) (map[string]uint32, error) {
+	shardLastSeqno := map[string]uint32{}
+
+	query := `
+		select id, 
+		       seqno
+		from tonflow.last_seqno
+	`
+	rows, err := db.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		id    string
+		seqno uint32
+	)
+	for rows.Next() {
+		err = rows.Scan(&id, &seqno)
+		if err != nil {
+			return nil, err
+		}
+		shardLastSeqno[id] = seqno
+	}
+
+	return shardLastSeqno, nil
 }

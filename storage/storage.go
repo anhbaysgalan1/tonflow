@@ -14,9 +14,14 @@ type Storage interface {
 	GetWallet(ctx context.Context, address string) (*model.Wallet, error)
 
 	GetInMemoryWallets() map[string]int64
+
+	SetLastSeqno(ctx context.Context, shards map[string]uint32) error
+	GetLastSeqno(ctx context.Context) (map[string]uint32, error)
 }
 
 type Cache interface {
 	SetUserCache(ctx context.Context, user *model.User) error
 	GetUserCache(ctx context.Context, userID int64) (*model.User, error)
+	// need to add stage reset method
+	// ...
 }

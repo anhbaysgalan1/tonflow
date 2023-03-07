@@ -12,8 +12,7 @@ const (
 	SendButton          = "Send"
 	BalanceButton       = "Balance"
 	UpdateBalanceButton = "Update balance"
-	SendAllButton       = "Send all"
-	SendMaxButton       = "Send maximum"
+	SendAllButton       = "Send all coins"
 	AddCommentButton    = "Add comment"
 	ConfirmButton       = "Confirm"
 	CancelButton        = "Cancel"
@@ -34,10 +33,11 @@ const (
 	Comment    = "\n\nComment: %s"
 
 	SendingConfirmation = "✋ Confirm sending?\n\nTo wallet address: <code>%s</code>\n\nAmount: %s TON\nFee: ~%s TON"
-	Confirmed           = "\n\n⏳ Sending coins..."
-	Sent                = "\n\n✅ Successfully sent"
+	SendingCoins        = "\n\n⏳ Sending coins..."
+	Sent                = "\n\n✅ Successfully sent, balance: %s TON"
 	Canceled            = "\n\n✔ Canceled"
 
-	ReceivedCoins  = "🎉 Received %s TON\nFrom: %s"
-	SeeTransaction = "\n<a href=\"https://tonapi.io/transaction/%s\">see transaction</a>"
+	ReceivedCoins   = "💎 <b>Received %s TON</b> from <a href=\"https://tonapi.io/transaction/%s\">%s</a>"
+	ReceivedComment = " with comment: %s"
+	ReceivedBalance = ", balance: %s TON"
 )

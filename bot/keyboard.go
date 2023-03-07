@@ -20,6 +20,16 @@ var (
 				"balance"),
 		))
 
+	inlineReceiveSendKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
+		tgBotAPI.NewInlineKeyboardRow(
+			tgBotAPI.NewInlineKeyboardButtonData(
+				ReceiveButton,
+				"receive"),
+			tgBotAPI.NewInlineKeyboardButtonData(
+				SendButton,
+				"send"),
+		))
+
 	inlineBalanceKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
@@ -39,14 +49,6 @@ var (
 		tgBotAPI.NewInlineKeyboardRow(
 			tgBotAPI.NewInlineKeyboardButtonData(
 				SendAllButton,
-				"send all"),
-		),
-	)
-
-	inlineSendMaxKeyboard = tgBotAPI.NewInlineKeyboardMarkup(
-		tgBotAPI.NewInlineKeyboardRow(
-			tgBotAPI.NewInlineKeyboardButtonData(
-				SendMaxButton,
 				"send all"),
 		),
 	)
