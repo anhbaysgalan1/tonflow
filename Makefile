@@ -9,7 +9,7 @@ local:
 	docker-compose -f docker-compose-local.yml --env-file local.env up -d
 
 prod:
-	docker-compose -f docker-compose-local.yml --env-file local.env down
+	docker-compose -f docker-compose.yml --env-file prod.env down
 	make build
 	docker-compose -f docker-compose.yml --env-file prod.env up -d
 
