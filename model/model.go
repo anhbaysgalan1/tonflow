@@ -13,6 +13,7 @@ type User struct {
 	LanguageCode   string     `json:"languageCode"`
 	Wallet         *Wallet    `json:"wallet"`
 	StageData      *StageData `json:"stageData"`
+	IsExisted      bool       `json:"isExisted"`
 	FirstMessageAt time.Time  `json:"firstMessageAt"`
 }
 
@@ -40,6 +41,14 @@ const (
 	ConfirmationWait
 )
 
+var EmptyStageData = StageData{
+	Stage:         ZeroStage,
+	AddressToSend: "",
+	AmountToSend:  "",
+	SendAll:       false,
+	Comment:       "",
+}
+
 func (s Stage) String() string {
 	switch s {
 	case 0:
@@ -49,9 +58,9 @@ func (s Stage) String() string {
 	case 2:
 		return "amount waiting"
 	case 3:
-		return "confirmation waiting"
-	case 4:
 		return "comment waiting"
+	case 4:
+		return "confirmation waiting"
 	default:
 		return "undefined stage"
 	}

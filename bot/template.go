@@ -1,43 +1,39 @@
 package bot
 
 const (
-	WelcomeNewUser     = "Hello, %s!\n\nYour new fast and secure wallet has been created. " + WelcomeCommon
-	WelcomeExistedUser = "Welcome again, %s!\n\n" + WelcomeCommon
-	WelcomeCommon      = "Your wallet address is\n<code>%s</code>\n\nJust click on it to copy. The QR code of this address in the picture. You can manage your wallet using the buttons under this message.\n\n" + "Please remember that for security reasons, access to this wallet is only possible from your current Telegram account."
-	ReceiveInstruction = "Show QR code to receive TON or use wallet address"
+	WelcomeNewUser     = "Hello, %s!\n\nYour new fast and secure wallet has been created. Here is its address:\n\n" + WelcomeCommon
+	WelcomeExistedUser = "Welcome again, %s!\n\nYour wallet address:\n\n" + WelcomeCommon
+	WelcomeCommon      = "<code>%s</code>\n\nJust click on it to copy. Or use the QR code to receive TON coins.\n\nYou can manage your wallet using following command:\n/balance - wallet balance\n/send - send coins\n/receive - receive coins\n/cancel - cancel current operation\n\nPlease remember that for security reasons, access to this wallet is only possible from your current Telegram account."
 
-	Balance = "💎 Balance: %s TON"
+	Balance = "Balance: %s TON"
 
-	ReceiveButton       = "Receive"
-	SendButton          = "Send"
-	BalanceButton       = "Balance"
-	UpdateBalanceButton = "Update balance"
-	SendAllButton       = "Send all coins"
-	AddCommentButton    = "Add comment"
-	ConfirmButton       = "Confirm"
-	CancelButton        = "Cancel"
+	ReceiveInstruction = "Show this QR code to receive TON coins or use this wallet address:\n\n<code>%s</code>"
+	ReceivedCoins      = "+ %s TON\nFrom <a href=\"https://tonapi.io/transaction/%s\">%s</a>"
+	ReceivedComment    = "\nComment: %s"
+	ReceivedBalance    = "\nBalance: %s TON"
 
-	BalanceUpToDate = "Balance is up to date"
-	BalanceUpdated  = "Balance updated"
+	ReceiveButton    = "Receive"
+	SendButton       = "Send"
+	BalanceButton    = "Balance"
+	SendAllButton    = "Send all coins"
+	AddCommentButton = "Add comment"
+	ConfirmButton    = "Confirm"
+	CancelButton     = "Cancel"
 
-	AskAmount      = "💰 How many TON to send?"
-	NoFunds        = "🤷️ You have no TON"
-	NotEnoughFunds = "🤷️ Not enough funds on your balance, you just have %s TON. Also blockchain fee of ~%s TON is charged for each transfer."
-	InvalidAmount  = "☝️ Only digits and one dot are allowed, try again"
+	AskWallet     = "OK, send me the recipient's address or take a picture of his QR code"
+	InvalidQR     = "🤷 Unable to recognize the QR code, try another photo or send me recipient's address"
+	InvalidWallet = "🤷️ This address is not valid, check it and try again"
 
-	AskWallet     = "📲 Enter the recipient's wallet address or take a photo of QR code"
-	InvalidQR     = "🤷 Unable to recognize QR code, try another photo or enter wallet address"
-	InvalidWallet = "🤷 There is no wallet with this address"
+	AskAmount      = "How many TON coins to send?"
+	NoFunds        = "🤷️ You have no TON coins"
+	NotEnoughFunds = "🤷️ Not enough funds on your balance, you just have %s TON coins. Also blockchain fee of ~ %s coins is charged for each transfer."
+	InvalidAmount  = "️Only digits and one dot are allowed, try again, please"
 
-	AskComment = "💬 Ok, send your transfer comment"
+	AskComment = "OK, send me your transfer comment"
 	Comment    = "\n\nComment: %s"
 
-	SendingConfirmation = "✋ Confirm sending?\n\nTo wallet address: <code>%s</code>\n\nAmount: %s TON\nFee: ~%s TON"
-	SendingCoins        = "\n\n⏳ Sending coins..."
-	Sent                = "\n\n✅ Successfully sent, balance: %s TON"
-	Canceled            = "\n\n✔ Canceled"
-
-	ReceivedCoins   = "💎 <b>Received %s TON</b> from <a href=\"https://tonapi.io/transaction/%s\">%s</a>"
-	ReceivedComment = " with comment: %s"
-	ReceivedBalance = ", balance: %s TON"
+	SendingConfirmation = "✋ Confirm sending?\n\nTo address: <code>%s</code>\n\nAmount: %s TON coins\nFee: ~ %s"
+	SendingCoins        = "\n\n⏳ <i>Sending coins...</i>"
+	Sent                = "\n\n✅ Successfully sent"
+	Canceled            = "\n\nCanceled"
 )

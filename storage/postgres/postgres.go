@@ -117,6 +117,7 @@ func (db *DB) AddWallet(ctx context.Context, wallet *model.Wallet, userID int64)
 	defer func() {
 		if err != nil {
 			tx.Rollback(ctx)
+			log.Error(err)
 			return
 		}
 		tx.Commit(ctx)

@@ -33,7 +33,7 @@ func (bot *Bot) sendNotification(chatID int64, text string, markup interface{}) 
 	return nil
 }
 
-func (bot *Bot) sendPhoto(chatID int64, data []byte, caption string, markup interface{}) error {
+func (bot *Bot) sendImage(chatID int64, data []byte, caption string, markup interface{}) error {
 	photoBytes := tgBotAPI.FileBytes{
 		Bytes: data,
 	}

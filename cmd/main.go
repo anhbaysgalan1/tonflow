@@ -66,7 +66,7 @@ func main() {
 			select {
 			case tx := <-txCh:
 				log.Debug("Transaction:", tx.String())
-				botService.WalletNotify(context.Background(), tx)
+				botService.Notify(context.Background(), tx)
 			case err = <-errCh:
 				log.Error(err)
 				go blockchain.Scan(blockchainClient, storageClient, txCh, errCh)
