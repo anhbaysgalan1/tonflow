@@ -10,89 +10,87 @@ import (
 )
 
 func (bot *Bot) handleUpdate(ctx context.Context, update tgBotAPI.Update) {
-	user := &model.User{}
-	isExisted := false
-	var err error
-	if update.Message != nil || update.CallbackQuery != nil {
-		user, isExisted, err = bot.getTonflowUser(ctx, update.SentFrom())
+	var (
+		message  = update.Message
+		callback = update.CallbackQuery
+		user     *model.User
+		err      error
+	)
+
+	if message != nil || callback != nil {
+		user, err = bot.getTonflowUser(ctx, update.SentFrom())
 		if err != nil {
 			log.Error(err)
 			return
 		}
-		log.Debugf("getTonflowUser():\n%v\nisExisted: %v", pkg.PrintAny(user), pkg.PrintAny(isExisted))
-	}
-	switch {
-	case update.Message != nil:
-		bot.handleMessage(ctx, update, user, isExisted)
-	case update.CallbackQuery != nil:
-		bot.handleCallback(ctx, update, user)
+
+		log.Debugf("getTonflowUser():\n%s", pkg.PrintAny(user))
+
+		switch {
+		case message != nil:
+			bot.handleMessage(ctx, update, user)
+		case callback != nil:
+			bot.handleCallback(ctx, update, user)
+		}
 	}
 }
 
-func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update, user *model.User, isExisted bool) {
+func (bot *Bot) handleMessage(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	switch {
 	case update.Message.IsCommand():
 		switch update.Message.Command() {
 		case "start":
-			bot.cmdStart(update, user, isExisted)
+			bot.start(update, user)
 		case "balance":
-			bot.inlineBalance(ctx, update, user)
+			bot.balance(ctx, update, user)
 		case "receive":
-			bot.inlineReceiveCoins(update, user)
+			bot.receiveCoins(update, user)
 		case "send":
-			bot.inlineSendCoins(ctx, update, user)
+			bot.sendCoins(ctx, update, user)
 		case "cancel":
-			bot.commonCancel(ctx, update, user)
-		}
-	default:
-		switch {
-		case user.StageData.Stage == model.AddressWait:
-			bot.acceptSendingAddress(ctx, update, user)
-		case user.StageData.Stage == model.AmountWait:
-			bot.acceptSendingAmount(ctx, update, user)
-		case user.StageData.Stage == model.CommentWait:
-			bot.acceptComment(ctx, update, user)
+			bot.cancel(ctx, update, user)
 		default:
-			/// need implement this right
-			err := bot.sendText(update.Message.Chat.ID, "Nothing to do...", nil)
+			err := bot.sendText(update.Message.Chat.ID, "There is no command like this", nil)
 			if err != nil {
 				log.Error(err)
 				return
 			}
-			///
+		}
+	default:
+		switch user.StageData.Stage {
+		case model.AddressWait:
+			bot.setAddress(ctx, update, user)
+		case model.AmountWait:
+			bot.setAmount(ctx, update, user)
+		case model.CommentWait:
+			bot.setComment(ctx, update, user)
+		default:
+			err := bot.sendText(update.Message.Chat.ID, "Nothing to do with this message...", nil)
+			if err != nil {
+				log.Error(err)
+				return
+			}
 		}
 	}
 }
 
 func (bot *Bot) handleCallback(ctx context.Context, update tgBotAPI.Update, user *model.User) {
 	switch update.CallbackData() {
-
-	case "receive":
-		bot.inlineReceiveCoins(update, user)
-
-	case "send":
-		bot.inlineSendCoins(ctx, update, user)
-
 	case "balance":
-		bot.inlineBalance(ctx, update, user)
-
-	case "update balance":
-		bot.inlineBalanceUpdate(ctx, update, user)
-
-	case "cancel":
-		bot.inlineCancel(ctx, update, user)
-		bot.inlineBalance(ctx, update, user)
-
+		bot.balance(ctx, update, user)
+	case "receive":
+		bot.receiveCoins(update, user)
+	case "send":
+		bot.sendCoins(ctx, update, user)
 	case "add comment":
-		bot.inlineAddComment(ctx, update, user)
-
+		bot.addComment(ctx, update, user)
 	case "send all":
-		bot.inlineSendAll(ctx, update, user)
-
+		bot.sendAll(ctx, update, user)
 	case "confirm":
-		bot.confirmSending(ctx, update, user)
-
+		bot.confirm(ctx, update, user)
+	case "cancel":
+		bot.cancel(ctx, update, user)
 	default:
-		log.Warning(fmt.Errorf("need handle this case"))
+		log.Warning(fmt.Errorf("unsupported callback data"))
 	}
 }

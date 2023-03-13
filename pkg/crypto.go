@@ -19,7 +19,7 @@ func generateRandom(size int) ([]byte, error) {
 	return b, nil
 }
 
-func Encode(data, pass string) (string, error) {
+func EncodeAES(data, pass string) (string, error) {
 	src := []byte(data)
 	key := sha256.Sum256([]byte(pass))
 
@@ -40,7 +40,7 @@ func Encode(data, pass string) (string, error) {
 	return hex.EncodeToString(dst), nil
 }
 
-func Decode(data, pass string) (string, error) {
+func DecodeAES(data, pass string) (string, error) {
 	src, err := hex.DecodeString(data)
 	if err != nil {
 		return "", fmt.Errorf("decode string error: %v", err)

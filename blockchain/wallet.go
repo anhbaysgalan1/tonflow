@@ -63,7 +63,7 @@ func (c *Client) ValidateWallet(addr string) error {
 }
 
 func (c *Client) Send(ctx context.Context, user *model.User) error {
-	seed, err := pkg.Decode(user.Wallet.Seed, strconv.FormatInt(user.ID, 10))
+	seed, err := pkg.DecodeAES(user.Wallet.Seed, strconv.FormatInt(user.ID, 10))
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func (c *Client) Send(ctx context.Context, user *model.User) error {
 }
 
 func (c *Client) SendAll(ctx context.Context, user *model.User) error {
-	seed, err := pkg.Decode(user.Wallet.Seed, strconv.FormatInt(user.ID, 10))
+	seed, err := pkg.DecodeAES(user.Wallet.Seed, strconv.FormatInt(user.ID, 10))
 	if err != nil {
 		return err
 	}

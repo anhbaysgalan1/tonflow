@@ -8,4 +8,5 @@ RUN go build -v -o /tmp/tonflow cmd/main.go
 
 FROM alpine:latest AS tonflow
 COPY --from=builder /tmp/tonflow /app/tonflow
+# COPY --from=builder /build/assets/logo-small.png /app/assets/
 CMD ["/app/tonflow"]
