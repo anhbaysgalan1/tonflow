@@ -22,14 +22,24 @@ services:
       - ./deploy/db/01_init.up.sql:/docker-entrypoint-initdb.d/init.sql
       - pg:/var/lib/postgresql/data
 
+  # redis-overcommit-on-host
+  redis-overcommit:
+    build: https://github.com/bkuhl/redis-overcommit-on-host.git
+    restart: 'no'
+    privileged: true
+    volumes:
+      - /proc/sys/vm:/mnt/vm
+
   redis:
-    image: redis:latest
+    image: redis:alpine
     container_name: redis
     ports:
       - "${REDIS_PORT}:${REDIS_PORT}"
     restart: always
     env_file:
       - prod.env
+    depends_on:
+      - redis-overcommit
     volumes:
       - redis:/data
 
