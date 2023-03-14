@@ -8,7 +8,7 @@ const (
 	Balance = "Balance: %s TON"
 
 	ReceiveInstruction = "Show this QR code to receive TON coins or use this wallet address:\n\n<code>%s</code>"
-	ReceivedCoins      = "+ %s TON\nFrom <a href=\"https://tonapi.io/transaction/%s\">%s</a>"
+	ReceivedCoins      = "+ %s TON\nFrom: <a href=\"https://tonapi.io/transaction/%s\">%s</a>"
 	ReceivedComment    = "\nComment: %s"
 	ReceivedBalance    = "\nBalance: %s TON"
 
