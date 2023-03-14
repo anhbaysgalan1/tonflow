@@ -60,7 +60,7 @@ func (db *DB) GetUserCache(ctx context.Context, userID int64) (*model.User, erro
 	}
 
 	b := []byte(val)
-	user := &model.User{Wallet: &model.Wallet{}}
+	user := &model.User{}
 	err = json.Unmarshal(b, user)
 	if err != nil {
 		return nil, err

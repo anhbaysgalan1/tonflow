@@ -271,7 +271,6 @@ func (bot *Bot) setAddress(ctx context.Context, update tgBotAPI.Update, user *mo
 
 	user.StageData.Stage = model.AmountWait
 	user.StageData.AddressToSend = addr
-
 	err = bot.redis.SetUserCache(ctx, user)
 	if err != nil {
 		log.Error(err)
@@ -362,6 +361,7 @@ func (bot *Bot) setAmount(ctx context.Context, update tgBotAPI.Update, user *mod
 
 	user.StageData.Stage = model.ConfirmationWait
 	user.StageData.AmountToSend = amount
+	user.StageData.SendAll = false
 	err = bot.redis.SetUserCache(ctx, user)
 	if err != nil {
 		log.Error(err)
