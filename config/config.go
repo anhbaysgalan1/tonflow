@@ -28,6 +28,7 @@ var Config = struct {
 	BlockchainTxFee   string `env:"BLOCKCHAIN_TX_FEE,required"`
 	RedisHost         string `env:"REDIS_HOST,required"`
 	RedisPort         string `env:"REDIS_PORT,required"`
+	RedisPassword     string `env:"REDIS_PASSWORD,required"`
 	RedisURI          string
 	PgHost            string `env:"PG_HOST,required"`
 	PgPort            string `env:"PG_PORT,required"`
