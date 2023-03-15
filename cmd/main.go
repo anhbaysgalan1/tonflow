@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// redis client
-	redisClient, err := redis.NewRedisClient(Config.RedisURI)
+	redisClient, err := redis.NewRedisClient(Config.RedisURI, Config.RedisPassword)
 	if err != nil {
 		log.Fatalf("failed to init redis client: %v", err)
 	}
