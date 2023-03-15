@@ -14,14 +14,14 @@ type DB struct {
 	*redis.Client
 }
 
-func NewRedisClient(URI string) (storage.Cache, error) {
+func NewRedisClient(URI string, pass string) (storage.Cache, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 
 	redisClient := redis.NewClient(
 		&redis.Options{
 			Addr:     URI,
-			Password: "",
+			Password: pass,
 			DB:       0,
 		},
 	)
