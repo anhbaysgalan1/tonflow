@@ -1,1 +1,1 @@
-![img.png](assets/img.png)
+![img.png](assets/cover.png)
